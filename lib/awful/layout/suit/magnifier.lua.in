@@ -27,6 +27,7 @@ function magnifier.arrange(p)
     local t = p.tag or tag.selected(p.screen)
     local mwfact = tag.getmwfact(t)
     local fidx
+    local gap = tag.getgap(t)
 
     -- Check that the focused window is on the right screen
     if focus and focus.screen ~= p.screen then focus = nil end
@@ -52,10 +53,10 @@ function magnifier.arrange(p)
         geometry.x = area.x + (area.width - geometry.width) / 2
         geometry.y = area.y + (area.height - geometry.height) /2
     else
-        geometry.x = area.x
-        geometry.y = area.y
-        geometry.width = area.width
-        geometry.height = area.height
+        geometry.x = area.x + gap
+        geometry.y = area.y + gap
+        geometry.width = area.width - 2*gap
+        geometry.height = area.height - 2*gap
     end
 
     local g = {
@@ -67,10 +68,10 @@ function magnifier.arrange(p)
     focus:geometry(g)
 
     if #cls > 1 then
-        geometry.x = area.x
-        geometry.y = area.y
-        geometry.height = area.height / (#cls - 1)
-        geometry.width = area.width
+        geometry.x = area.x + gap
+        geometry.y = area.y + gap
+        geometry.height = (area.height - gap) / (#cls - 1) - gap
+        geometry.width = area.width - 2*gap
 
         -- We don't know the focus window index. Try to find it.
         if not fidx then
@@ -85,7 +86,7 @@ function magnifier.arrange(p)
         -- First move clients that are before focused client.
         for k = fidx + 1, #cls do
             cls[k]:geometry(geometry)
-            geometry.y = geometry.y + geometry.height
+            geometry.y = geometry.y + geometry.height + gap
         end
 
         -- Then move clients that are after focused client.
@@ -98,7 +99,7 @@ function magnifier.arrange(p)
                 height = geometry.height - cls[k].border_width * 2
             }
             cls[k]:geometry(g)
-            geometry.y = geometry.y + geometry.height
+            geometry.y = geometry.y + geometry.height + gap
         end
     end
 end

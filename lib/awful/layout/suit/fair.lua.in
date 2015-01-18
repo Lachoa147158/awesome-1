@@ -7,6 +7,7 @@
 -- Grab environment we need
 local ipairs = ipairs
 local math = math
+local tag = require("awful.tag")
 
 --- Fair layouts module for awful
 -- awful.layout.suit.fair
@@ -15,6 +16,11 @@ local fair = {}
 local function do_fair(p, orientation)
     local wa = p.workarea
     local cls = p.clients
+    local t = p.tag or tag.selected(p.screen)
+    local gap = tag.getgap(t)
+
+    -- Ajust the work area based on the useless gap
+    wa.width, wa.height = wa.width - gap, wa.height - gap
 
     -- Swap workarea dimensions, if our orientation is "east"
     if orientation == 'east' then
@@ -64,10 +70,10 @@ local function do_fair(p, orientation)
                 g.x = g.width * col
             end
 
-            g.height = g.height - c.border_width * 2
-            g.width = g.width - c.border_width * 2
-            g.y = g.y + wa.y
-            g.x = g.x + wa.x
+            g.height = g.height - c.border_width * 2 - gap
+            g.width = g.width - c.border_width * 2 - gap
+            g.y = g.y + wa.y + gap
+            g.x = g.x + wa.x + gap
 
             -- Swap window dimensions, if our orientation is "east"
             if orientation == 'east' then

@@ -5,16 +5,17 @@
 ---------------------------------------------------------------------------
 
 -- Grab environment we need
+local capi = {
+    screen = screen,
+    awesome = awesome,
+    client = client,
+    tag = tag
+}
 local ipairs = ipairs
 local type = type
 local tag = require("awful.tag")
 local util = require("awful.util")
 local ascreen = require("awful.screen")
-local capi = {
-    screen = screen,
-    awesome = awesome,
-    client = client
-}
 local client = require("awful.client")
 
 --- Layout module for awful
@@ -137,15 +138,6 @@ end
 
 for s = 1, capi.screen.count() do
     capi.screen[s]:add_signal("arrange")
-
-    tag.attached_connect_signal(s, "property::mwfact", arrange_tag)
-    tag.attached_connect_signal(s, "property::nmaster", arrange_tag)
-    tag.attached_connect_signal(s, "property::ncol", arrange_tag)
-    tag.attached_connect_signal(s, "property::layout", arrange_tag)
-    tag.attached_connect_signal(s, "property::windowfact", arrange_tag)
-    tag.attached_connect_signal(s, "property::selected", arrange_tag)
-    tag.attached_connect_signal(s, "property::activated", arrange_tag)
-    tag.attached_connect_signal(s, "tagged", arrange_tag)
     capi.screen[s]:connect_signal("property::workarea", function(screen)
         layout.arrange(screen.index)
     end)
@@ -153,6 +145,16 @@ for s = 1, capi.screen.count() do
         layout.arrange(screen.index)
     end)
 end
+
+capi.tag.connect_signal("property::mwfact", arrange_tag)
+capi.tag.connect_signal("property::useless_gap", arrange_tag)
+capi.tag.connect_signal("property::nmaster", arrange_tag)
+capi.tag.connect_signal("property::ncol", arrange_tag)
+capi.tag.connect_signal("property::layout", arrange_tag)
+capi.tag.connect_signal("property::windowfact", arrange_tag)
+capi.tag.connect_signal("property::selected", arrange_tag)
+capi.tag.connect_signal("property::activated", arrange_tag)
+capi.tag.connect_signal("tagged", arrange_tag)
 
 capi.client.connect_signal("focus", function(c) layout.arrange(c.screen) end)
 capi.client.connect_signal("list", function()
