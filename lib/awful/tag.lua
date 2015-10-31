@@ -102,6 +102,11 @@ function tag.add(name, props)
 
     local newtag = capi.tag{ name = name }
 
+    -- Set the layout
+    properties.layout = properties.layout or (
+        properties.layouts and properties.layouts[1]
+    )
+
     -- Start with a fresh property table to avoid collisions with unsupported data
     data.tags[newtag] = {screen=properties.screen, index=properties.index}
 
@@ -343,6 +348,34 @@ end
 function tag.getscreen(t)
     local t = t or tag.selected()
     return tag.getproperty(t, "screen")
+end
+
+--- Set layouts available for a tag
+-- This method allow to define a subset (or superset) of tags to be used when
+-- looping iterating the possible layouts
+-- @param t tag object
+-- @param layouts an ordered array of layouts function
+function tag.setlayouts(t, layouts)
+    tag.setproperty(t, "layouts", layouts)
+end
+
+local global_layouts = nil
+
+--- Get the layouts available for this tag
+-- @return a custom array of layouts or the global layout table
+-- @return true if a custom set is defined
+function tag.getlayouts(t)
+    local layouts = tag.getproperty(t, "layouts")
+
+    if layouts then
+        return layouts, true
+    end
+
+    if not global_layouts then
+        global_layouts = require("awful.layout").layouts
+    end
+
+    return global_layouts, false
 end
 
 --- Return a table with all visible tags

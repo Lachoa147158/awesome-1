@@ -74,7 +74,7 @@ function layout.inc(i, s, layouts)
         layouts, i, s = i, s, layouts
     end
     local t = tag.selected(s)
-    local layouts = layouts or layout.layouts
+    local layouts = layouts or tag.getlayouts(t)
     if t then
         local curlayout = layout.get(s)
         local curindex
