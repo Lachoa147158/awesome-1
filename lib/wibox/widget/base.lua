@@ -271,6 +271,28 @@ function base.place_widget_at(widget, x, y, width, height)
     return base.place_widget_via_matrix(widget, matrix.create_translate(x, y), width, height)
 end
 
+--- Remove one or more widgets from the layout
+--- @tparam widget ... Widgets that should be removed (must at least be one)
+function base.remove_common(self,...)
+    local args = { ... }
+    local ret = true
+    for _,rem_widget in ipairs(args) do
+        for idx, widget in ipairs(self.widgets) do
+            if widget == rem_widget then
+                table.remove(self.widgets, idx)
+                break
+            end
+            ret = false
+        end
+    end
+
+    if #args then
+        self:emit_signal("widget::layout_changed")
+    end
+
+    return #args >= 0 and ret
+end
+
 --[[--
 Create a new widget. All widgets have to be generated via this function so that
 the needed signals are added and mouse input handling is set up.

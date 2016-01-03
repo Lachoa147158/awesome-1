@@ -47,6 +47,7 @@ function flex:layout(context, width, height)
             x, y = round(pos), 0
             w, h = floor(space_per_item), height
         end
+
         table.insert(result, base.place_widget_at(v, x, y, w, h))
 
         pos = pos + space_per_item + spacing
@@ -108,6 +109,8 @@ function flex:add(...)
     end
     self:emit_signal("widget::layout_changed")
 end
+
+flex.remove = base.remove_common
 
 --- Set the maximum size the widgets in this layout will take (that is,
 -- maximum width for horizontal and maximum height for vertical).

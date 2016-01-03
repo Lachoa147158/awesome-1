@@ -62,6 +62,8 @@ function fixed:add(...)
     self:emit_signal("widget::layout_changed")
 end
 
+fixed.remove = base.remove_common
+
 --- Fit the fixed layout into the given space
 -- @param context The context in which we are fit.
 -- @param orig_width The available width.
