@@ -1595,6 +1595,17 @@ luaA_client_swap(lua_State *L)
         *ref_swap = c;
 
         luaA_class_emit_signal(L, &client_class, "list", 0);
+
+        luaA_object_push(L, swap);
+        lua_pushboolean(L, true);
+        luaA_object_emit_signal(L, -4, "swapped", 2);
+        lua_pop(L, 2);
+
+        luaA_object_push(L, swap);
+        luaA_object_push(L, c);
+        lua_pushboolean(L, false);
+        luaA_object_emit_signal(L, -3, "swapped", 2);
+        lua_pop(L, 3);
     }
 
     return 0;
@@ -2729,6 +2740,12 @@ client_class_setup(lua_State *L)
      * @signal .list
      */
     signal_add(&client_class.signals, "list");
+    /** When 2 clients are swapped
+     * @args client The other client
+     * @args is_source If self is the source or the destination of the swap
+     * @signal .list
+     */
+    signal_add(&client_class.signals, "swapped");
     /**
      * @signal .manage
      */
