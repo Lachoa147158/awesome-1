@@ -80,7 +80,7 @@ function layout.inc(i, s, layouts)
         local curlayout = layout.get(s)
         local curindex
         for k, v in ipairs(layouts) do
-            if v == curlayout then
+            if v == curlayout or curlayout._type == v then
                 curindex = k
                 break
             end
@@ -107,7 +107,7 @@ end
 -- @param t The tag to modify, if null tag.selected() is used.
 function layout.set(_layout, t)
     t = t or tag.selected()
-    tag.setproperty(t, "layout", _layout)
+    tag.setlayout(_layout, t)
 end
 
 --- Get the layout parameters used for the screen

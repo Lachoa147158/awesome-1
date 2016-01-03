@@ -397,6 +397,18 @@ function tag.getmwfact(t)
     return tag.getproperty(t, "mwfact") or 0.5
 end
 
+--- Set layout
+-- @param layout a layout table or a constructor function
+-- @param t The tag to modify
+function tag.setlayout(layout, t)
+
+    if type(layout) == "table" and getmetatable(layout) and getmetatable(layout).__call then
+        layout = layout(t)
+    end
+
+    tag.setproperty(t, "layout", layout, true)
+end
+
 --- Set the spacing between clients
 -- @param useless_gap The spacing between clients
 -- @param t The tag to modify, if null tag.selected() is used.
