@@ -112,6 +112,8 @@ end
 
 flex.remove = base.remove_common
 
+flex.swap = base.swap_common
+
 --- Set the maximum size the widgets in this layout will take (that is,
 -- maximum width for horizontal and maximum height for vertical).
 -- @param val The maximum size of the widget.

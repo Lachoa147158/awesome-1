@@ -293,6 +293,33 @@ function base.remove_common(self,...)
     return #args >= 0 and ret
 end
 
+--- Swap 2 widgets in a layout
+-- @param widget1 The first widget
+-- @param widget2 The second widget
+-- @return If the swap is successful
+function base.swap_common(self, widget1, widget2)
+    local indices = { {widget=widget1}, {widget=widget2} }
+    for k,v in ipairs(indices) do
+        for idx, widget in ipairs(self.widgets) do
+            if widget == v.widget then
+                v.idx = idx
+                break
+            end
+        end
+    end
+
+    if indices[1].idx and indices[2].idx then
+        self.widgets[indices[1].idx] = widget2
+        self.widgets[indices[2].idx] = widget1
+
+        self:emit_signal("widget::layout_changed")
+
+        return true
+    end
+
+    return false
+end
+
 --[[--
 Create a new widget. All widgets have to be generated via this function so that
 the needed signals are added and mouse input handling is set up.

@@ -64,6 +64,8 @@ end
 
 fixed.remove = base.remove_common
 
+fixed.swap = base.swap_common
+
 --- Fit the fixed layout into the given space
 -- @param context The context in which we are fit.
 -- @param orig_width The available width.
