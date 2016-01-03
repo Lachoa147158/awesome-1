@@ -1,10 +1,25 @@
 -- Standard awesome library
 local gears = require("gears")
 local awful = require("awful")
+local wibox = require("wibox")
+
+-- Test the new layout system
+local dynamic = require("awful.layout.dynamic")
+
+local function simple_layout(t, base)
+    return base and base() or wibox.layout.flex.vertical()
+end
+
+awful.layout.suit.tile = dynamic.register("tile", simple_layout)
+
+awful.layout.suit.tile.left   = dynamic.register("tileleft",   simple_layout)
+awful.layout.suit.tile.right  = dynamic.register("tileright",  simple_layout)
+awful.layout.suit.tile.top    = dynamic.register("tiletop",    simple_layout, wibox.layout.flex.horizontal)
+awful.layout.suit.tile.bottom = dynamic.register("tilebottom", simple_layout, wibox.layout.flex.horizontal)
+
 awful.rules = require("awful.rules")
 require("awful.autofocus")
 -- Widget and layout library
-local wibox = require("wibox")
 -- Theme handling library
 local beautiful = require("beautiful")
 -- Notification library
@@ -56,10 +71,6 @@ modkey = "Mod4"
 -- Table of layouts to cover with awful.layout.inc, order matters.
 awful.layout.layouts = {
     awful.layout.suit.floating,
-    awful.layout.suit.tile,
-    awful.layout.suit.tile.left,
-    awful.layout.suit.tile.bottom,
-    awful.layout.suit.tile.top,
     awful.layout.suit.fair,
     awful.layout.suit.fair.horizontal,
     awful.layout.suit.spiral,
@@ -68,6 +79,10 @@ awful.layout.layouts = {
     awful.layout.suit.max.fullscreen,
     awful.layout.suit.magnifier,
     awful.layout.suit.corner.nw,
+    awful.layout.suit.tile,
+    awful.layout.suit.tile.left,
+    awful.layout.suit.tile.bottom,
+    awful.layout.suit.tile.top,
     -- awful.layout.suit.corner.ne,
     -- awful.layout.suit.corner.sw,
     -- awful.layout.suit.corner.se,
@@ -532,6 +547,6 @@ client.connect_signal("mouse::enter", function(c)
     end
 end)
 
-client.connect_signal("focus", function(c) c.border_color = beautiful.border_focus end)
-client.connect_signal("unfocus", function(c) c.border_color = beautiful.border_normal end)
+client.connect_signal("focus", function(c) c.border_color = "" end)
+client.connect_signal("unfocus", function(c) c.border_color = "" end)
 -- }}}
