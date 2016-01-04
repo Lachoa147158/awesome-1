@@ -116,6 +116,12 @@ flex.swap = base.swap_common
 
 flex.insert = base.insert_common
 
+--- Get the number of children element
+-- @return The number of children element
+function flex:get_children_count()
+    return #self.widgets
+end
+
 --- Set the maximum size the widgets in this layout will take (that is,
 -- maximum width for horizontal and maximum height for vertical).
 -- @param val The maximum size of the widget.

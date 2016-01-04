@@ -66,6 +66,12 @@ function rotate:set_widget(widget)
     self:emit_signal("widget::layout_changed")
 end
 
+--- Get the number of children element
+-- @return The number of children element
+function rotate:get_children_count()
+    return self.widget and 1 or 0
+end
+
 --- Reset this layout. The widget will be removed and the rotation reset.
 function rotate:reset()
     self.direction = nil

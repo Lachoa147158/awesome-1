@@ -73,6 +73,12 @@ function base.widget:set_height(s)
     end
 end
 
+--- Get the number of children element
+-- @return The number of children element
+function base.widget:get_children_count()
+    return 0 -- Each container widget need to re-implement this method
+end
+
 -- }}}
 
 -- {{{ Caches

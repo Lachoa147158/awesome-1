@@ -68,6 +68,12 @@ fixed.swap = base.swap_common
 
 fixed.insert = base.insert_common
 
+--- Get the number of children element
+-- @return The number of children element
+function fixed:get_children_count()
+    return #self.widgets
+end
+
 --- Fit the fixed layout into the given space
 -- @param context The context in which we are fit.
 -- @param orig_width The available width.

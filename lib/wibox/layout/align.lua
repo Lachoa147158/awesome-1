@@ -164,6 +164,18 @@ function align:set_third(widget)
     self:emit_signal("widget::layout_changed")
 end
 
+--- Get the number of children element
+-- @return The number of children element
+function align:get_children_count()
+    local sum = 0
+
+    for k,v in ipairs {self.first, self.second, self.third} do
+        sum = sum + (v and 1 or 0)
+    end
+
+    return sum
+end
+
 --- Fit the align layout into the given space. The align layout will
 -- ask for the sum of the sizes of its sub-widgets in its direction
 -- and the largest sized sub widget in the other direction.
