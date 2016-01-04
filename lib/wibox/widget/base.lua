@@ -320,6 +320,16 @@ function base.swap_common(self, widget1, widget2)
     return false
 end
 
+--- Insert a new widget in the layout at position `index`
+-- @param index The position
+-- @param widget The widget
+function base.insert_common(self, index, widget)
+    table.insert(self.widgets, index, widget)
+    self:emit_signal("widget::layout_changed")
+end
+
+
+
 --[[--
 Create a new widget. All widgets have to be generated via this function so that
 the needed signals are added and mouse input handling is set up.
