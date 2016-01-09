@@ -506,6 +506,15 @@ function util.table.merge(t, set)
     end
 end
 
+--- Override elements in the first table by the one in the second
+-- @tparam table t the container table
+-- @tparam table set the mixin table
+function util.table.crush(t, set)
+    for k, v in pairs(set) do
+        t[k] = v
+    end
+end
+
 
 -- Escape all special pattern-matching characters so that lua interprets them
 -- literally instead of as a character class.

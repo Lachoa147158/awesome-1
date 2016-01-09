@@ -6,7 +6,7 @@
 -- @author Julien Danjou &lt;julien@danjou.info&gt;
 -- @author Sébastien Gross &lt;seb-awesome@chezwam.org&gt;
 -- @copyright 2008 Julien Danjou, Sébastien Gross
--- @release @AWESOME_VERSION@
+-- @release v3.5.2-972-g6bdd498-dirty
 -- @module awful.completion
 ---------------------------------------------------------------------------
 
@@ -24,7 +24,7 @@ local completion = {}
 
 -- mapping of command/completion function
 local bashcomp_funcs = {}
-local bashcomp_src = "@SYSCONFDIR@/bash_completion"
+local bashcomp_src = "/usr/local/etc/bash_completion"
 
 --- Enable programmable bash completion in awful.completion.bash at the price of
 -- a slight overhead.

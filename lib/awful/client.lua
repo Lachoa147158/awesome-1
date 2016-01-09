@@ -895,7 +895,6 @@ function client.incwfact(add, c)
 
     local w = client.idx(c)
 
-    local nmaster = tag.getnmaster(t)
     local data = tag.getproperty(t, "windowfact") or {}
     local colfact = data[w.col] or {}
     curr = colfact[w.idx] or 1

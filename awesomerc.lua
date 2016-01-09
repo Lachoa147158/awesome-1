@@ -2,20 +2,16 @@
 local gears = require("gears")
 local awful = require("awful")
 local wibox = require("wibox")
+local collision = require("collision")()
 
 -- Test the new layout system
-local dynamic = require("awful.layout.dynamic")
 
-local function simple_layout(t, base)
-    return base and base() or wibox.layout.flex.vertical()
-end
 
-awful.layout.suit.tile = dynamic.register("tile", simple_layout)
-
+--[[
 awful.layout.suit.tile.left   = dynamic.register("tileleft",   simple_layout)
 awful.layout.suit.tile.right  = dynamic.register("tileright",  simple_layout)
 awful.layout.suit.tile.top    = dynamic.register("tiletop",    simple_layout, wibox.layout.flex.horizontal)
-awful.layout.suit.tile.bottom = dynamic.register("tilebottom", simple_layout, wibox.layout.flex.horizontal)
+awful.layout.suit.tile.bottom = dynamic.register("tilebottom", simple_layout, wibox.layout.flex.horizontal)]]
 
 awful.rules = require("awful.rules")
 require("awful.autofocus")
@@ -68,24 +64,30 @@ editor_cmd = terminal .. " -e " .. editor
 -- However, you can use another modifier like Mod1, but it may interact with others.
 modkey = "Mod4"
 
+awful.layout.suit.tile = require("awful.layout.dynamic.suit.tile")
+awful.layout.suit.fair = require("awful.layout.dynamic.suit.fair")
+local ts = require("awful.layout.dynamic.suit.treesome")
+local cor =require("awful.layout.dynamic.suit.corner")
 -- Table of layouts to cover with awful.layout.inc, order matters.
 awful.layout.layouts = {
-    awful.layout.suit.floating,
-    awful.layout.suit.fair,
-    awful.layout.suit.fair.horizontal,
-    awful.layout.suit.spiral,
-    awful.layout.suit.spiral.dwindle,
-    awful.layout.suit.max,
-    awful.layout.suit.max.fullscreen,
-    awful.layout.suit.magnifier,
-    awful.layout.suit.corner.nw,
     awful.layout.suit.tile,
     awful.layout.suit.tile.left,
     awful.layout.suit.tile.bottom,
     awful.layout.suit.tile.top,
-    -- awful.layout.suit.corner.ne,
-    -- awful.layout.suit.corner.sw,
-    -- awful.layout.suit.corner.se,
+    cor,
+--     awful.layout.suit.floating,
+    awful.layout.suit.fair,
+    awful.layout.suit.fair.horizontal,
+--     ts, --TODO I broke it again
+--     awful.layout.suit.spiral,
+--     awful.layout.suit.spiral.dwindle,
+--     awful.layout.suit.max,
+--     awful.layout.suit.max.fullscreen,
+--     awful.layout.suit.magnifier,
+--     awful.layout.suit.corner.nw,
+--     awful.layout.suit.corner.ne,
+--     awful.layout.suit.corner.sw,
+--     awful.layout.suit.corner.se,
 }
 -- }}}
 
@@ -246,10 +248,12 @@ root.buttons(awful.util.table.join(
 globalkeys = awful.util.table.join(
     awful.key({ modkey,           }, "s",      hotkeys_popup.show_help,
               {description="show help", group="awesome"}),
-    awful.key({ modkey,           }, "Left",   awful.tag.viewprev,
-              {description = "view previous", group = "tag"}),
-    awful.key({ modkey,           }, "Right",  awful.tag.viewnext,
-              {description = "view next", group = "tag"}),
+--     awful.key({ modkey,           }, "Left",   awful.tag.viewprev,
+--               {description = "view previous", group = "tag"}),
+--     awful.key({ modkey,           }, "Right",  awful.tag.viewnext,
+--               {description = "view next", group = "tag"}),
+    awful.key({ modkey,           }, "d",      collision.split,
+              {description="show spliting points", group="Collision"}),
     awful.key({ modkey,           }, "Escape", awful.tag.history.restore,
               {description = "go back", group = "tag"}),
 
