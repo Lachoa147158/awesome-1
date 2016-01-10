@@ -43,6 +43,7 @@ function ratio:layout(context, width, height)
     end
 
     for k, v in pairs(self.widgets) do
+        print("HERE", self, #self.widgets)
         local space = nil
         local x, y, w, h
         if self.dir == "y" then
@@ -55,6 +56,7 @@ function ratio:layout(context, width, height)
             w, h = floor(space), height
         end
 
+        print(w, width)
         table.insert(result, base.place_widget_at(v, x, y, w, h))
 
         pos = pos + space + spacing

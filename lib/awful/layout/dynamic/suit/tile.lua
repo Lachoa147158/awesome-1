@@ -8,6 +8,8 @@ local base_layout = require( "awful.layout.dynamic.base_layout" )
 
 --- When a tag is not visible, it must stop trying to mess with the content
 local function wake_up(self)
+    if self.is_woken_up then return end
+
     -- If the number of column changed while inactive, this layout doesn't care.
     -- It has its own state, so it only act on the delta while visible
     self._ncol    = tag.getncol   (self._tag)
@@ -18,13 +20,21 @@ local function wake_up(self)
     self._tag:connect_signal("property::mwfact" , self._conn_mwfact )
     self._tag:connect_signal("property::ncol"   , self._conn_ncol   )
     self._tag:connect_signal("property::nmaster", self._conn_nmaster)
+
+    self.is_woken_up = true
 end
 
 local function suspend(self)
+    if not self.is_woken_up then
+        return
+    end
+
     -- Disconnect the signals
     self._tag:disconnect_signal("property::mwfact" , self._conn_mwfact )
     self._tag:disconnect_signal("property::ncol"   , self._conn_ncol   )
     self._tag:disconnect_signal("property::nmaster", self._conn_nmaster)
+
+    self.is_woken_up = false
 end
 
 --- When the number of column change, re-balance the elements

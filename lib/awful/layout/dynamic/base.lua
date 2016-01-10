@@ -17,10 +17,12 @@ local aw_layout = require( "awful.layout"               )
 local cairo     = require( "lgi"                        ).cairo
 local resize    = require( "awful.layout.dynamic.resize")
 local base_layout = require( "awful.layout.dynamic.base_layout" )
+local l_wrapper = require( "awful.layout.dynamic.wrapper")
 
 
 local internal = {}
-local function insert_wrapper(handler, c, wrapper)
+
+function internal.insert_wrapper(handler, c, wrapper)
 
     local pos = #handler.wrappers+1
     handler.wrappers         [ pos ] = wrapper
@@ -30,37 +32,12 @@ local function insert_wrapper(handler, c, wrapper)
     handler.widget:add(wrapper)
 end
 
-local function remove_wrapper(handler, c, wrapper)
+function internal.remove_wrapper(handler, c, wrapper)
     table.remove(handler.wrappers, handler.client_to_index[c])
     handler.client_to_index  [c] = nil
     handler.client_to_wrapper[c] = nil
 
     handler.widget:remove(wrapper, true)
-end
-
--- Equivalent of wibox.widget.draw, simply move and resize the client
-local function draw(self, context, cr, width, height)
-    local c = self._client
-
-    local matrix = cr:get_matrix()
-
-    c:geometry {
-        x      = matrix.x0,
-        y      = matrix.y0,
-        width  = width    ,
-        height = height   ,
-    }
-end
-
-local function before_draw_children(...)
-    
-end
-
--- This could eventually be used to move an overlay wibox
--- on top of the top of the client or something or add
--- a resize handle
-local function after_draw_children(...)
-
 end
 
 --- Get the list of client that were added and removed
@@ -85,11 +62,6 @@ local function get_client_differential(self)
     return added, removed
 end
 
---- The layout could be used to move tilebar elements or add overlay wiboxes
-local function layout(...)
-
-end
-
 --- When a tag is selected or the layout change for this one, activate the handler
 local function wake_up(self)
     if self.widget.wake_up then
@@ -99,16 +71,18 @@ local function wake_up(self)
     local added, removed = get_client_differential(self)
 
     for k, c in ipairs(added) do
-        local wrapper = internal.wrap_client(c)
-        wrapper._handler = self
+        if not client.floating.get(c) then
+            local wrapper = l_wrapper.wrap_client(internal, c)
+            wrapper._handler = self
 
-        insert_wrapper(self, c, wrapper)
+            internal.insert_wrapper(self, c, wrapper)
+        end
     end
 
     for k, c in ipairs(removed) do
         local wrapper = self.client_to_wrapper[c]
 
-        remove_wrapper(self, c, wrapper)
+        internal.remove_wrapper(self, c, wrapper)
     end
 
     self.active = true
@@ -123,62 +97,9 @@ local function suspend(self)
     self.active = false
 end
 
-local function split(wrapper, context, direction)
-    if not context.client_widget or not context.source_root then return end
-    local t = (direction == "left" or direction == "right")
-
-    local l = t and base_layout.horizontal() or base_layout.vertical()
-
-    local f = context.source_root._remove or context.source_root.remove
-    f(context.source_root, context.client_widget, true)
-
-    t = (direction == "left" or direction == "top")
-    l:add(t and context.client_widget or wrapper)
-    l:add(t and wrapper or context.client_widget)
-
-    local idx = context.source_root:index(wrapper, true)
-
-    context.source_root:replace(wrapper, l, true)
-
-    context.source_root:emit_signal("widget::redraw_needed")
-end
-
---- Allow the wrapper to be splited in each of the 4 directions
-local function splitting_points(wrapper, geometry)
-    --TODO move the wrapper to its own module
-    local ret = {}
-
-    -- Add a group of split point for the UX handler
-    table.insert(ret, {
-        x      = geometry.x + geometry.width  / 2,
-        y      = geometry.y + geometry.height / 2,
-        type   = "internal"                      ,
-        points = {
-            {
-                direction = "left",
-                callback  = function(self, context) split(wrapper, context, "left") end
-            },
-            {
-                direction = "right",
-                callback  = function(self, context) split(wrapper, context, "right") end
-            },
-            {
-                direction = "top",
-                callback  = function(self, context) split(wrapper, context, "top") end
-            },
-            {
-                direction = "bottom",
-                callback  = function(self, context) split(wrapper, context, "bottom") end
-            }
-        }
-    })
-
-    return ret
-end
-
 -- Create the wrapper
 -- @param c_w A client or a wibox
-function internal.wrap_client(c_w)
+function internal.wrap_client(internal, c_w)
     local wrapper = object()
     wrapper:add_signal("widget::redraw_needed")
     wrapper:add_signal("widget::layout_changed")
@@ -200,13 +121,15 @@ function internal.wrap_client(c_w)
             --TODO the widget.visible attribute is not implemented by layouts
             --TODO support inserting it back where it was
             if c_w.minimized then
-                remove_wrapper(handler, c, wrapper)
+                internal.remove_wrapper(handler, c, wrapper)
             else
-                insert_wrapper(handler, c, wrapper)
+                internal.insert_wrapper(handler, c, wrapper)
             end
         end
 
     end)
+
+    --TODO add terminate_wrapper to disconnect all signals, it leak
 
     --Listen to resize requests
     c_w:connect_signal("request::geometry", function(c, reasons, geo)
@@ -309,10 +232,12 @@ function internal.create_layout(t, l)
 
     handler._tag:connect_signal("tagged", function(t,c)
         if handler.active then
-            local wrapper = internal.wrap_client(c)
-            wrapper._handler = handler
+            if not client.floating.get(c) then
+                local wrapper = l_wrapper.wrap_client(internal, c)
+                wrapper._handler = handler
 
-            insert_wrapper(handler, c, wrapper)
+                internal.insert_wrapper(handler, c, wrapper)
+            end
         end
     end)
 
@@ -320,8 +245,7 @@ function internal.create_layout(t, l)
         if handler.active then
             local wrapper = handler.client_to_wrapper[c]
 
-            print("\n\nREM")
-            remove_wrapper(handler, c, wrapper)
+            internal.remove_wrapper(handler, c, wrapper)
         end
     end)
 

@@ -8,21 +8,28 @@ local module = {}
 local function split_callback(wrapper, context, pos)
     if not context.client_widget or not context.source_root then return end
 
-    --TODO, currently, it always add new columns, but this should required
-    -- only for top level  (children of context.source_root) otherwise, it create
-    -- a lot of "noise" splitpoints, but it is cool for testing!
-    local new_col = wrapper.dir == "x" and module.vertical() or module.horizontal()
+    -- Create a new splitter section unless it is a "root" laout
+    local root_idx = context.source_root:index(wrapper)
+
+    local new_col = nil
+
+    if not root_idx then
+        new_col = wrapper.dir == "x" and module.vertical() or module.horizontal()
+    end
 
     context.source_root:remove(context.client_widget, true)
 
     if pos == "first" then
-        wrapper:insert(1, new_col)
+        wrapper:insert(1, new_col or context.client_widget)
     else
         local f = (wrapper._add or wrapper.add)
-        f(wrapper,new_col)
+        f(wrapper, new_col or context.client_widget)
     end
 
-    new_col:add(context.client_widget)
+    if new_col then
+        new_col:add(context.client_widget)
+    end
+
     wrapper:emit_signal("widget::redraw_needed")
 end
 
