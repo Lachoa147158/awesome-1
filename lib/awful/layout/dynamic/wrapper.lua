@@ -4,6 +4,7 @@
 local object    = require( "gears.object"               )
 local base_layout = require( "awful.layout.dynamic.base_layout" )
 local client    = require( "awful.client"               )
+local tag       = require( "awful.tag"                  )
 
 local internal = {}
 
@@ -71,11 +72,13 @@ local function draw(self, context, cr, width, height)
 
     local matrix = cr:get_matrix()
 
+    local gap = (not self._handler._tag and 0 or tag.getgap(self._handler._tag))
+
     c:geometry {
-        x      = matrix.x0,
-        y      = matrix.y0,
-        width  = width    ,
-        height = height   ,
+        x      = matrix.x0 + gap,
+        y      = matrix.y0 + gap,
+        width  = width     - 2*c.border_width - gap,
+        height = height    - 2*c.border_width - gap,
     }
 end
 
@@ -88,19 +91,6 @@ end
 -- a resize handle
 local function after_draw_children(...)
 
-end
-
-local function on_minimize(private,  wrapper, c)
-    local handler = wrapper._handler
-    if handler.active then
-        --TODO the widget.visible attribute is not implemented by layouts
-        --TODO support inserting it back where it was
-        if c.minimized then
-            private.remove_wrapper( c, wrapper)
-        else
-            private.insert_wrapper( c, wrapper)
-        end
-    end
 end
 
 local function on_geometry(private,  wrapper, c, reasons, geo)
@@ -129,12 +119,16 @@ local function on_swap(private,  wrapper, self,other_c,is_source)
     end
 end
 
-local function on_floating(private,  wrapper,c)
-    if client.floating.get(c) then
-        wrapper._handler.widget:add(wrapper, true)
-    else
-        wrapper._handler.widget:remove(wrapper, true)
-    end
+local function suspend(wrapper)
+    wrapper._client:disconnect_signal("request::geometry"  , wrapper.on_geometry )
+    wrapper._client:disconnect_signal("swapped"            , wrapper.on_swap     )
+    wrapper._client:disconnect_signal("focus"              , wrapper.on_focus    )
+end
+
+local function wake_up(wrapper)
+    wrapper._client:connect_signal("request::geometry"  , wrapper.on_geometry )
+    wrapper._client:connect_signal("swapped"            , wrapper.on_swap     )
+    wrapper._client:connect_signal("focus"              , wrapper.on_focus    )
 end
 
 -- Create the wrapper
@@ -152,22 +146,14 @@ function internal.wrap_client(private, c_w)
     wrapper.visible              = true
     wrapper._widget_caches       = {}
     wrapper.splitting_points     = splitting_points
+    wrapper.suspend              = suspend
+    wrapper.wake_up              = wake_up
 
+    wrapper.on_geometry = function(c, reasons, geo) on_geometry(private, wrapper, c, reasons, geo) end
+    wrapper.on_swap     = function(self,other_c,is_source) on_swap(private, wrapper, self,other_c,is_source) end
+    wrapper.on_focus    = function(c) on_focus(private, wrapper, c) end
 
-    --TODO disconnect these in suspend
-    c_w:connect_signal("property::minimized", function(c) on_minimize(private, wrapper, c) end)
-
-    --TODO add terminate_wrapper to disconnect all signals, it leak
-
-    --Listen to resize requests
-    c_w:connect_signal("request::geometry", function(c, reasons, geo) on_geometry(private, wrapper, c, reasons, geo) end)
-
-    --TODO disconnect these in suspend
-    c_w:connect_signal("swapped",function(self,other_c,is_source) on_swap(private, wrapper, self,other_c,is_source) end)
-
-    c_w:connect_signal("focus",function(c) on_focus(private, wrapper, c) end)
-
-    c_w:connect_signal("property::floating",function(c) on_floating(private, wrapper, c) end)
+    wake_up(wrapper)
 
     return wrapper
 end

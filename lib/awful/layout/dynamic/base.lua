@@ -7,7 +7,7 @@
 -- @module awful.layout.hierarchy
 ---------------------------------------------------------------------------
 
-
+local capi = {client=client}
 local tag       = require( "awful.tag"                  )
 local util      = require( "awful.util"                 )
 local client    = require( "awful.client"               )
@@ -36,6 +36,8 @@ function internal.remove_wrapper(handler, c, wrapper)
     table.remove(handler.wrappers, handler.client_to_index[c])
     handler.client_to_index  [c] = nil
     handler.client_to_wrapper[c] = nil
+
+    wrapper:suspend()
 
     handler.widget:remove(wrapper, true)
 end
@@ -97,79 +99,6 @@ local function suspend(self)
     self.active = false
 end
 
--- Create the wrapper
--- @param c_w A client or a wibox
-function internal.wrap_client(internal, c_w)
-    local wrapper = object()
-    wrapper:add_signal("widget::redraw_needed")
-    wrapper:add_signal("widget::layout_changed")
-
-    wrapper._client              = c_w
-    wrapper.draw                 = draw
-    wrapper.before_draw_children = before_draw_children
-    wrapper.after_draw_children  = after_draw_children
-    wrapper.layout               = layout
-    wrapper.visible              = true
-    wrapper._widget_caches       = {}
-    wrapper.splitting_points     = splitting_points
-
-
-    --TODO disconnect these in suspend
-    c_w:connect_signal("property::minimized", function(c)
-        local handler = wrapper._handler
-        if handler.active then
-            --TODO the widget.visible attribute is not implemented by layouts
-            --TODO support inserting it back where it was
-            if c_w.minimized then
-                internal.remove_wrapper(handler, c, wrapper)
-            else
-                internal.insert_wrapper(handler, c, wrapper)
-            end
-        end
-
-    end)
-
-    --TODO add terminate_wrapper to disconnect all signals, it leak
-
-    --Listen to resize requests
-    c_w:connect_signal("request::geometry", function(c, reasons, geo)
-        local handler = wrapper._handler
-        if handler.active  and reasons == "mouse.resize" then
-            if handler.widget.resize then
-                handler.widget:resize(wrapper, geo)
-            else
-                resize.update_ratio(handler.hierarchy, wrapper, geo)
-            end
-        end
-    end)
-
-    --TODO disconnect these in suspend
-    c_w:connect_signal("swapped",function(self,other_c,is_source)
-        if wrapper._handler.active and is_source then
-            if wrapper._handler then
-                wrapper._handler:swap(self, other_c, true)
-                wrapper._handler.widget:emit_signal("widget::redraw_needed")
-            end
-        end
-    end)
-
-    c_w:connect_signal("focus",function(c)
-        if wrapper._handler.active and wrapper._handler.widget.raise then
-            wrapper._handler.widget:raise(wrapper, true)
-        end
-    end)
-
-    c_w:connect_signal("property::floating",function(c)
-        if client.floating.get(c) then
-            wrapper._handler.widget:add(wrapper, true)
-        else
-            wrapper._handler.widget:remove(wrapper, true)
-        end
-    end)
-
-    return wrapper
-end
-
 local function main_layout(self, handler)
 
     local region = cairo.Region.create()
@@ -195,6 +124,7 @@ local function redraw(a, handler)
 
         --Move to the work area
         local workarea = handler.param.workarea
+
         cr:translate(workarea.x, workarea.y)
 
         handler.hierarchy:draw({dpi=96},cr)
@@ -267,6 +197,16 @@ function internal.create_layout(t, l)
 
     function handler.arrange(param)
         handler.param = param
+
+        -- The wrapper handle useless gap, remove it from the workarea
+        local gap = not handler._tag and 0 or tag.getgap(handler._tag)
+        handler.param.workarea = {
+            x      = handler.param.workarea.x      -   gap,
+            y      = handler.param.workarea.y      -   gap,
+            width  = handler.param.workarea.width  + 2*gap,
+            height = handler.param.workarea.height + 2*gap,
+        }
+
         handler.hierarchy:_redraw()
     end
 
@@ -280,6 +220,71 @@ function internal.swap(handler, client1, client2)
 
     handler.widget:swap(w1, w2, true)
 end
+
+local function get_handler_and_wrapper(c)
+    local t = nil
+    for k,v in ipairs(c:tags()) do
+        if v.selected then
+            t = v
+            break
+        end
+    end
+
+    if not t then return end
+
+    local handler = tag.getproperty(t, "layout")
+
+    if not handler or not handler.is_dynamic then return end
+
+    local wrapper = handler.client_to_wrapper[c]
+
+    return handler, wrapper
+end
+
+capi.client.connect_signal("property::floating", function(c)
+    local handler, wrapper = get_handler_and_wrapper(c)
+    if not handler then return end
+
+    local is_floating = client.floating.get(c)
+
+    if not is_floating then
+        if not wrapper then
+            wrapper = l_wrapper.wrap_client(internal, c)
+            wrapper._handler = handler
+            internal.insert_wrapper(handler, c, wrapper)
+        else
+            wrapper:wake_up()
+            handler.widget:add(wrapper, true)
+        end
+    elseif wrapper then
+        internal.remove_wrapper(handler, c, wrapper)
+        handler.widget:remove(wrapper, true)
+    end
+
+end)
+
+capi.client.connect_signal("property::minimized",function(c)
+    local handler, wrapper = get_handler_and_wrapper(c)
+    if not handler then return end
+    if client.floating.get(c) then return end
+
+    --TODO support inserting it back where it was
+
+    if c.minimized then
+        if wrapper then
+            internal.remove_wrapper(handler, c, wrapper)
+        end
+    else
+        if not wrapper then
+            wrapper = l_wrapper.wrap_client(internal, c)
+            wrapper._handler = handler
+            internal.insert_wrapper(handler, c, wrapper)
+        else
+            wrapper:wake_up()
+            handler.widget:add(wrapper, true)
+        end
+    end
+end)
 
 local module = {}
 

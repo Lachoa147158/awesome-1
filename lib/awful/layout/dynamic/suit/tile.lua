@@ -211,6 +211,9 @@ local function ctr(t, direction)
         main_layout:add_column()
     end
 
+    -- Apply the default width factor
+    main_layout._cols_priority[#main_layout._cols_priority].mwfact = main_layout._mwfact
+
     return main_layout
 end
 
