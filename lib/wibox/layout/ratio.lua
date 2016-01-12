@@ -1,5 +1,5 @@
 ---------------------------------------------------------------------------
--- @author Uli Schlachter
+-- @author Emmanuel Lepage Vallee
 -- @copyright 2016 Emmanuel Lepage Vallee
 -- @release @AWESOME_VERSION@
 -- @classmod wibox.layout.ratio

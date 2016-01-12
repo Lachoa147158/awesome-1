@@ -1693,6 +1693,12 @@ luaA_client_raise(lua_State *L)
 {
     client_t *c = luaA_checkudata(L, 1, &client_class);
     client_raise(c);
+
+    /* Notify the listeners */
+    luaA_object_push(L, c);
+    luaA_object_emit_signal(L, -1, "raised", 0);
+    lua_pop(L, 1);
+
     return 0;
 }
 
@@ -1710,6 +1716,11 @@ luaA_client_lower(lua_State *L)
     /* Traverse all transient layers. */
     for(client_t *tc = c->transient_for; tc; tc = tc->transient_for)
         stack_client_push(tc);
+
+    /* Notify the listeners */
+    luaA_object_push(L, c);
+    luaA_object_emit_signal(L, -1, "lowered", 0);
+    lua_pop(L, 1);
 
     return 0;
 }
@@ -2743,7 +2754,7 @@ client_class_setup(lua_State *L)
     /** When 2 clients are swapped
      * @args client The other client
      * @args is_source If self is the source or the destination of the swap
-     * @signal .list
+     * @signal .swapped
      */
     signal_add(&client_class.signals, "swapped");
     /**
@@ -2989,6 +3000,14 @@ client_class_setup(lua_State *L)
      * @tag t The tag object.
      */
     signal_add(&client_class.signals, "untagged");
+    /**
+     * @signal .raised
+     */
+    signal_add(&client_class.signals, "raised");
+    /**
+     * @signal .lowered
+     */
+    signal_add(&client_class.signals, "lowered");
 }
 
 // vim: filetype=c:expandtab:shiftwidth=4:tabstop=8:softtabstop=4:textwidth=80

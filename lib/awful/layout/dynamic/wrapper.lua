@@ -38,6 +38,7 @@ local function splitting_points(wrapper, geometry)
         x      = geometry.x + geometry.width  / 2,
         y      = geometry.y + geometry.height / 2,
         type   = "internal"                      ,
+        client = wrapper._client                 ,
         points = {
             {
                 direction = "left",
@@ -74,11 +75,21 @@ local function draw(self, context, cr, width, height)
 
     local gap = (not self._handler._tag and 0 or tag.getgap(self._handler._tag))
 
+    -- Remove the border and gap from the final size
+    width  = width  - 2*c.border_width - gap
+    height = height - 2*c.border_width - gap
+
+    -- I don't know what to do if this happen, anybody have a better idea?
+    if width <= 0 or height <= 0 then
+        c.minimzed = true
+        return
+    end
+
     c:geometry {
         x      = matrix.x0 + gap,
         y      = matrix.y0 + gap,
-        width  = width     - 2*c.border_width - gap,
-        height = height    - 2*c.border_width - gap,
+        width  = width          ,
+        height = height         ,
     }
 end
 
@@ -105,6 +116,10 @@ local function on_geometry(private,  wrapper, c, reasons, geo)
 end
 
 local function on_focus(private,  wrapper, c)
+
+end
+
+local function on_raise(private, wrapper, c)
     if wrapper._handler.active and wrapper._handler.widget.raise then
         wrapper._handler.widget:raise(wrapper, true)
     end
@@ -123,12 +138,14 @@ local function suspend(wrapper)
     wrapper._client:disconnect_signal("request::geometry"  , wrapper.on_geometry )
     wrapper._client:disconnect_signal("swapped"            , wrapper.on_swap     )
     wrapper._client:disconnect_signal("focus"              , wrapper.on_focus    )
+    wrapper._client:disconnect_signal("raised"             , wrapper.on_raise    )
 end
 
 local function wake_up(wrapper)
     wrapper._client:connect_signal("request::geometry"  , wrapper.on_geometry )
     wrapper._client:connect_signal("swapped"            , wrapper.on_swap     )
     wrapper._client:connect_signal("focus"              , wrapper.on_focus    )
+    wrapper._client:connect_signal("raised"             , wrapper.on_raise    )
 end
 
 -- Create the wrapper
@@ -152,6 +169,7 @@ function internal.wrap_client(private, c_w)
     wrapper.on_geometry = function(c, reasons, geo) on_geometry(private, wrapper, c, reasons, geo) end
     wrapper.on_swap     = function(self,other_c,is_source) on_swap(private, wrapper, self,other_c,is_source) end
     wrapper.on_focus    = function(c) on_focus(private, wrapper, c) end
+    wrapper.on_raise    = function(c) on_raise(private, wrapper, c) end
 
     wake_up(wrapper)
 

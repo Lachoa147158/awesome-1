@@ -709,9 +709,12 @@ event_handle_maprequest(xcb_map_request_event_t *ev)
             lua_State *L = globalconf_get_lua_State();
             luaA_object_push(L, c);
             client_set_minimized(L, -1, false);
-            lua_pop(L, 1);
             /* it will be raised, so just update ourself */
             client_raise(c);
+
+            /* Notify the listeners */
+            luaA_object_emit_signal(L, -1, "raised", 0);
+            lua_pop(L, 1);
         }
     }
     else

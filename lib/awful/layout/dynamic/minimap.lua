@@ -21,7 +21,8 @@ local function get_rects(handler)
                 y      = y + add_y,
                 width  = width,
                 height = height,
-                client = widget._client
+                client = widget._client,
+                widget = widget
             })
         end
 

@@ -89,8 +89,25 @@ function fixed:remove(...)
     return #args >= 0 and ret
 end
 
-function fixed:get_widgets()
-    return self.widgets
+--- Get all children of this layout
+-- @warning If the widget contain itself, this will cause an infinite loop
+-- @param[opt] recursive Also add all widgets of childrens
+-- @return a list of all widgets
+function fixed:get_widgets(recursive)
+    if not recursive then return self.widgets end
+
+    local ret = {}
+
+    for k, w in ipairs(self.widgets) do
+    print("INSERT",w)
+        table.insert(ret, w)
+        local childrens = w.get_widgets and w:get_widgets(true) or {}
+        for k2, w2 in ipairs(childrens) do
+            table.insert(ret, w2)
+        end
+    end
+
+    return ret
 end
 
 function fixed:index(widget, recursive)

@@ -74,10 +74,15 @@ local function wake_up(self)
 
     for k, c in ipairs(added) do
         if not client.floating.get(c) then
-            local wrapper = l_wrapper.wrap_client(internal, c)
-            wrapper._handler = self
+            if self.client_to_index[c] then
+                self.client_to_index[c]:wake_up()
+                self.widget:add(self.client_to_index[c])
+            else
+                local wrapper = l_wrapper.wrap_client(internal, c)
+                wrapper._handler = self
 
-            internal.insert_wrapper(self, c, wrapper)
+                internal.insert_wrapper(self, c, wrapper)
+            end
         end
     end
 
@@ -163,10 +168,15 @@ function internal.create_layout(t, l)
     handler._tag:connect_signal("tagged", function(t,c)
         if handler.active then
             if not client.floating.get(c) then
-                local wrapper = l_wrapper.wrap_client(internal, c)
-                wrapper._handler = handler
+                if handler.client_to_index[c] then
+                    handler.client_to_index[c]:wake_up()
+                    handler.widget:add(handler.client_to_index[c])
+                else
+                    local wrapper = l_wrapper.wrap_client(internal, c)
+                    wrapper._handler = handler
 
-                internal.insert_wrapper(handler, c, wrapper)
+                    internal.insert_wrapper(handler, c, wrapper)
+                end
             end
         end
     end)
@@ -174,6 +184,8 @@ function internal.create_layout(t, l)
     handler._tag:connect_signal("untagged", function(t,c)
         if handler.active then
             local wrapper = handler.client_to_wrapper[c]
+
+            if not wrapper then return end
 
             internal.remove_wrapper(handler, c, wrapper)
         end
