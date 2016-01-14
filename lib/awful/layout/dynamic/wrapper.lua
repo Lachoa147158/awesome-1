@@ -136,7 +136,7 @@ local function on_geometry(private,  wrapper, c, reasons, geo)
         if handler.widget.resize then
             handler.widget:resize(wrapper, geo)
         else
-            resize.update_ratio(handler.hierarchy, wrapper, geo)
+            resize.update_ratio(handler, wrapper, geo)
         end
     end
 end

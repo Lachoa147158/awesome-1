@@ -120,6 +120,9 @@ end
 function ratio:inc_ratio(widget, percent)
     if #self.widgets ==  1 or (not widget) or percent < -1 or percent > 1 then return end
 
+    print(self, widget)
+    assert(self._ratios[widget])
+
     self:set_ratio(widget, self._ratios[widget] - percent)
 end
 

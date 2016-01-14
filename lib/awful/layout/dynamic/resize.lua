@@ -1,3 +1,5 @@
+local util = require("awful.util")
+
 local capi =
 {
     mouse        = mouse       ,
@@ -101,9 +103,41 @@ function module.generic_mouse_resize_handler(client, corner)
     end, "cross")
 end
 
+local function ratio_lookup(handler, wrapper)
+    local idx, parent, path = handler.widget:index(wrapper, true)
+    local res = {}
+
+    local full_path = util.table.join({parent}, path)
+
+    for i=#full_path, 1, -1 do
+        local w = full_path[i]
+        if w.inc_ratio then
+            res[w.dir] = res[w.dir] or {layout = w, widget = full_path[i-1] or wrapper}
+        end
+    end
+
+    return res
+end
+
+local function get_delta()
+    --TODO
+end
+
+local function compute_ration()
+    --TODO
+end
+
 --- If there is a ratio based layout somewhere, try to get all geometry updated
-function module.update_ratio(hierarchy, widget, geo)
-    print("RESIZE", geo.x, geo.y, geo.width, geo.height)
+function module.update_ratio(handler, widget, geo)
+    local ratio_wdgs = ratio_lookup(handler, widget)
+
+    if ratio_wdgs.x then
+        ratio_wdgs.x.layout:inc_ratio(ratio_wdgs.x.widget, -0.01)
+    end
+    if ratio_wdgs.y then
+        ratio_wdgs.y.layout:inc_ratio(ratio_wdgs.y.widget, -0.01)
+    end
+    handler.widget:emit_signal("widget::redraw_needed")
     --I will do that later, it should not be an issue
 end
 
