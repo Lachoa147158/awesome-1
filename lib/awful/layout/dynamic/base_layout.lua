@@ -71,10 +71,44 @@ local function splitting_points(wrapper, geometry)
     return ret
 end
 
+--- As the layout may have random subdivisions, make sure to call their "raise" too
+-- @param self The layout
+local function raise(self, widget)
+    local idx, parent, path = self:index(widget, true)
+    -- Self is path[#path], avoid stack overflow
+    for i= #path-1, 1, -1 do-- in ipairs(path) do
+        local w = path[i]
+        if w.raise then
+            w:raise(widget)
+        end
+    end
+end
+
+--- Make sure all suspend functions are called
+local function suspend(self)
+    for k,v in ipairs(self.widgets) do
+        if v.suspend then
+            v:suspend()
+        end
+    end
+end
+
+--- Make sure all wake_up functions are called
+local function wake_up(self)
+    for k,v in ipairs(self.widgets) do
+        if v.wake_up then
+            v:wake_up()
+        end
+    end
+end
+
 local function get_layout(dir, widget1, ...)
     local ret = origin[dir](widget1, ...)
 
     ret.splitting_points = splitting_points
+    ret.raise            = raise
+    ret.suspend          = suspend
+    ret.wake_up          = wake_up
 
     ret.fill_space = nil
 

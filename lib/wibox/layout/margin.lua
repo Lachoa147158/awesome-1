@@ -9,6 +9,7 @@ local pairs = pairs
 local type = type
 local setmetatable = setmetatable
 local base = require("wibox.widget.base")
+local util = require("awful.util")
 local gcolor = require("gears.color")
 local cairo = require("lgi").cairo
 
@@ -71,6 +72,18 @@ end
 -- @return The number of children element
 function margin:get_children_count()
     return self.widget and 1 or 0
+end
+
+--- Get all children of this layout
+-- @warning If the widget contain itself, this will cause an infinite loop
+-- @param[opt] recursive Also add all widgets of childrens
+-- @return a list of all widgets
+function margin:get_widgets(recursive)
+    if not recursive or not self.widget or not self.widget.get_widgets then return {self.widget} end
+
+    local widgets = util.table.join({widgets}, self.widget:get_widgets(true))
+
+    return widgets
 end
 
 --- Set all the margins to val.

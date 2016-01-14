@@ -245,7 +245,7 @@ for s = 1, capi.screen.count() do
     end)
 end
 
-capi.client.connect_signal("focus", function(c) layout.arrange(c.screen) end)
+capi.client.connect_signal("raised", function(c) layout.arrange(c.screen) end)
 capi.client.connect_signal("list", function()
                                    for screen = 1, capi.screen.count() do
                                        layout.arrange(screen)

@@ -5,6 +5,7 @@ local object    = require( "gears.object"               )
 local base_layout = require( "awful.layout.dynamic.base_layout" )
 local client    = require( "awful.client"               )
 local tag       = require( "awful.tag"                  )
+local stack_l   = require( "awful.layout.dynamic.tabbed" )
 
 local internal = {}
 
@@ -21,11 +22,31 @@ local function split(wrapper, context, direction)
     l:add(t and context.client_widget or wrapper)
     l:add(t and wrapper or context.client_widget)
 
-    local idx = context.source_root:index(wrapper, true)
+--     local idx = context.source_root:index(wrapper, true)
+
+    context.source_root:replace(wrapper, l, true)
+
+    context.source_root:raise(context.client_widget)
+
+    context.source_root:emit_signal("widget::redraw_needed")
+end
+
+local function stack(wrapper, context)
+
+    local f = context.source_root._remove or context.source_root.remove
+    f(context.source_root, context.client_widget, true)
+
+    local l = stack_l()
+
+    l:add(context.client_widget)
+    l:add(wrapper              )
+
 
     context.source_root:replace(wrapper, l, true)
 
     context.source_root:emit_signal("widget::redraw_needed")
+
+    l:raise(context.client_widget)
 end
 
 --- Allow the wrapper to be splited in each of the 4 directions
@@ -55,6 +76,10 @@ local function splitting_points(wrapper, geometry)
             {
                 direction = "bottom",
                 callback  = function(self, context) split(wrapper, context, "bottom") end
+            },
+            {
+                direction = "stack",
+                callback  = function(self, context) stack(wrapper, context          ) end
             }
         }
     })

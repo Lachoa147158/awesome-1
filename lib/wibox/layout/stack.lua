@@ -26,7 +26,7 @@ function stack:layout(context, width, height)
 
     for k, v in pairs(self.widgets) do
         table.insert(result, base.place_widget_at(v, spacing, spacing, width - 2*spacing, height - 2*spacing))
-        if self._top_only then break end
+--         if self._top_only then break end
     end
 
 --     print("IN LAYOUT",spacing,spacing,width - 2*spacing,height - 2*spacing)

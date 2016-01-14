@@ -99,7 +99,6 @@ function fixed:get_widgets(recursive)
     local ret = {}
 
     for k, w in ipairs(self.widgets) do
-    print("INSERT",w)
         table.insert(ret, w)
         local childrens = w.get_widgets and w:get_widgets(true) or {}
         for k2, w2 in ipairs(childrens) do
@@ -110,28 +109,38 @@ function fixed:get_widgets(recursive)
     return ret
 end
 
-function fixed:index(widget, recursive)
+--- Get a widex index
+-- @param widget The widget to look for
+-- @param[opt] recursive Also check sub-widgets
+-- @param[opt] ... Aditional widgets to add at the end of the "path"
+-- @return The index, the parent layout, the path between "self" and "widget"
+function fixed:index(widget, recursive, ...)
     for idx, w in ipairs(self.widgets) do
         if w == widget then
-            return idx, self
+            return idx, self, {...}
         elseif recursive and type(w.index) == "function" then
-            local idx, l = w:index(widget, true)
+            local idx, l, path = w:index(widget, true, self, ...)
             if idx and l then
-                return idx, l
+                return idx, l, path
             end
         end
     end
 
-    return nil, self
+    return nil, self, {}
 end
 
+--- Replace a widget in the layout
+-- @param widget1_or_index A widget or a widget index
+-- @param widget2 The widget to take the place of the first one
+-- @param[opt] recursive Replace the widget even if it is not a direct child of this layout
+-- @return The index of the replaced widget, the parent layout and the path
 function fixed:replace(widget1_or_index, widget2, recursive)
     if not widget1_or_index or not widget2 then return end
 
     local index, layout = type(widget1_or_index) == "number" and widget1_or_index or nil, self
 
     if not index then
-        index, layout = self:index(widget1_or_index, recursive)
+        index, layout, path = self:index(widget1_or_index, recursive)
     end
 
     if layout and index then
@@ -144,7 +153,7 @@ function fixed:replace(widget1_or_index, widget2, recursive)
         return index
     end
 
-    return nil
+    return nil, layout, path
 end
 
 --- Swap 2 widgets in a layout

@@ -22,6 +22,10 @@ local function wake_up(self)
     self._tag:connect_signal("property::nmaster", self._conn_nmaster)
 
     self.is_woken_up = true
+
+    if self._wake_up then
+        self:_wake_up()
+    end
 end
 
 local function suspend(self)
@@ -35,6 +39,10 @@ local function suspend(self)
     self._tag:disconnect_signal("property::nmaster", self._conn_nmaster)
 
     self.is_woken_up = false
+
+    if self._suspend then
+        self:_suspend()
+    end
 end
 
 --- When the number of column change, re-balance the elements
@@ -194,6 +202,8 @@ local function ctr(t, direction)
     main_layout._add           = main_layout.add
     main_layout._remove        = main_layout.remove
     main_layout._tag           = t
+    main_layout._wake_up       = main_layout.wake_up
+    main_layout._suspend       = main_layout.suspend
 
     -- Methods
     main_layout.add            = add

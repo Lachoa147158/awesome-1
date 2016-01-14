@@ -355,12 +355,12 @@ local module = {}
 -- @usage -- Align all clients on top of each other using wibox.layout.flex.vertical
 --  awful.layout.suit.tile_clone = awful.layout.dynamic.register("vertical",
 --      function (t, ...) return wibox.layout.flex.vertical() end)
-function module.register(name, base_layout, ...)
+function module.register(name, bl, ...)
     local generator = {name = name}
     local args = {...}
 
     setmetatable(generator, {__call = function(self, t )
-        local l =  base_layout(t , unpack(args))
+        local l =  bl(t , unpack(args))
 
         local l_obj      = internal.create_layout(t, l)
         l_obj._type      = generator

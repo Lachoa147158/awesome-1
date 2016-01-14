@@ -71,7 +71,7 @@ local ts = require("awful.layout.dynamic.suit.treesome")
 local cor =require("awful.layout.dynamic.suit.corner")
 -- Table of layouts to cover with awful.layout.inc, order matters.
 awful.layout.layouts = {
---     awful.layout.suit.tile,
+    awful.layout.suit.tile,
 --     awful.layout.suit.tile.left,
 --     awful.layout.suit.tile.bottom,
 --     awful.layout.suit.tile.top,
@@ -171,7 +171,7 @@ mytasklist = {}
 mytasklist.buttons = awful.util.table.join(
                      awful.button({ }, 1, function (c)
                                               if c == client.focus then
-                                                  c.minimized = true
+--                                                   c.minimized = true
                                               else
                                                   -- Without this, the following
                                                   -- :isvisible() makes no sense
@@ -428,7 +428,7 @@ for i = 1, 9 do
 end
 
 clientbuttons = awful.util.table.join(
-    awful.button({ }, 1, function (c) client.focus = c; c:raise() end),
+    awful.button({ }, 1, function (c) if c ~= client.focus then client.focus = c; c:raise() end), end),
     awful.button({ modkey }, 1, awful.mouse.client.move),
     awful.button({ modkey }, 3, awful.mouse.client.resize))
 
