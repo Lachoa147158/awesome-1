@@ -4,6 +4,7 @@ local capi = {client = client}
 local stack   = require( "awful.layout.dynamic.base_stack" )
 local margins = require( "wibox.layout.margin"             )
 local wibox   = require( "wibox"                           )
+local timer   = require( "gears.timer"                     )
 local beautiful = require( "beautiful" )
 
 local fct = {}
@@ -59,32 +60,32 @@ local function create_tab(c)
     return bg
 end
 
+local function create_tabbar(w, widgets)
+    local flex = wibox.layout.flex.horizontal()
+
+    for k,v in ipairs(widgets) do
+        if v._client then
+            flex:add(create_tab(v._client))
+        end
+    end
+
+    w:set_widget(flex)
+end
+
+
 local function before_draw_child(self, context, index, child, cr, width, height)
     if not self._wibox then
         self._wibox = wibox({})
-
-        local flex = wibox.layout.flex.horizontal()
-
-        --TODO overrdide add/remove to keep the "real" list
-        --TODO allow modules to override the widget
-        --TODO dragging the widget swap the group (how?)
-
-        for k,v in ipairs(self._s:get_widgets()) do
-            if v._client then
-                flex:add(create_tab(v._client))
-            end
-        end
-
-        self._wibox:set_widget(flex)
+        create_tabbar(self._wibox, self._s:get_widgets())
     end
 
     local matrix = cr:get_matrix()
 
     self._wibox.x = matrix.x0
     self._wibox.y = matrix.y0
-    self._wibox.height = math.ceil(beautiful.get_font_height() * 1.5)
-    self._wibox.width = width
-    self._wibox.visible=true
+    self._wibox.height  = math.ceil(beautiful.get_font_height() * 1.5)
+    self._wibox.width   = width
+    self._wibox.visible = true
 end
 
 local function suspend(self)
@@ -97,16 +98,50 @@ local function wake_up(self)
     self._s:wake_up()
 end
 
+--- If there is only 1 tab left, self destruct
+local function remove(self, widget)
+    -- Self is the stack
+
+    local ret = self._m._remove(self, widget)
+
+    -- The delayed call is not really necessary, but it is safer to avoid
+    -- messing with the hierarchy in nested calls
+    if #self.widgets <= 1 then
+        timer.delayed_call(function()
+            -- Look for an handler, if none if found, then there is a bug
+            -- somewhere
+            local handler = widget._handler
+            if not handler then
+                local children = self._s:get_widgets(true)
+                for k, w in ipairs(children) do
+                    if w._handler then
+                        handler = w._handler
+                        break
+                    end
+                end
+            end
+
+            if not handler then return end
+
+            local w = self.widgets[1]
+            handler.widget:replace(self._m, w, true)
+        end)
+    end
+end
+
 local function ctr2(self, t)
     local s = stack(false)
 
     local m = margins(s)
     m._s    = s
+    s._m    = m
     m:set_top(math.ceil(beautiful.get_font_height() * 1.5))
     m:set_widget(s)
 
-    m.suspend = suspend
-    m.wake_up = wake_up
+    m.suspend  = suspend
+    m.wake_up  = wake_up
+    m._remove  = s.remove
+    s.remove   = remove
 
     m.before_draw_child = before_draw_child
 

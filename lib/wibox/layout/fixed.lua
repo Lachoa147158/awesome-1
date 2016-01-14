@@ -77,9 +77,14 @@ function fixed:remove(...)
         local idx, l = self:index(rem_widget, recursive)
 
         if idx and l then
-            assert(l.widgets[idx] == rem_widget)
-            table.remove(l.widgets, idx)
-            l:emit_signal("widget::layout_changed")
+            -- In case :remove() is overloaded, make sure its logic is executed
+            if l ~= self and l.remove then
+                l:remove(l.widgets[idx], false)
+            else
+                assert(l.widgets[idx] == rem_widget)
+                table.remove(l.widgets, idx)
+                l:emit_signal("widget::layout_changed")
+            end
         else
             ret = false
         end
@@ -137,6 +142,8 @@ end
 function fixed:replace(widget1_or_index, widget2, recursive)
     if not widget1_or_index or not widget2 then return end
 
+    base.check_widget(widget2)
+
     local index, layout = type(widget1_or_index) == "number" and widget1_or_index or nil, self
 
     if not index then
@@ -180,6 +187,7 @@ end
 -- @param index The position
 -- @param widget The widget
 function fixed:insert(index, widget)
+    base.check_widget(widget)
     table.insert(self.widgets, index, widget)
     self:emit_signal("widget::layout_changed")
 end

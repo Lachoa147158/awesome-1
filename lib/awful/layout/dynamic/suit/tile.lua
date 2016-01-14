@@ -6,15 +6,33 @@ local tag     = require( "awful.tag"                 )
 local util    = require( "awful.util"                )
 local base_layout = require( "awful.layout.dynamic.base_layout" )
 
+-- Add some columns
+local function init_col(self)
+
+    -- This can change during initialization, but before the tag is selected
+    self._mwfact  =  1   /   tag.getmwfact (self._tag)
+    self._ncol    = math.max(tag.getncol   (self._tag), 1)
+    self._nmaster = math.max(tag.getnmaster(self._tag), 1)
+
+    if #self._cols_priority == 0 then
+
+        -- Create the master column
+        self:add_column()
+
+        -- Apply the default width factor to the master
+        self._cols_priority[1].mwfact = self._mwfact
+    end
+end
+
 --- When a tag is not visible, it must stop trying to mess with the content
 local function wake_up(self)
     if self.is_woken_up then return end
 
     -- If the number of column changed while inactive, this layout doesn't care.
     -- It has its own state, so it only act on the delta while visible
-    self._ncol    = tag.getncol   (self._tag)
-    self._mwfact  = tag.getmwfact (self._tag)
-    self._nmaster = tag.getnmaster(self._tag)
+    self._ncol    =   tag.getncol   (self._tag)
+    self._mwfact  = 1/tag.getmwfact (self._tag)
+    self._nmaster =   tag.getnmaster(self._tag)
 
     -- Connect the signals
     self._tag:connect_signal("property::mwfact" , self._conn_mwfact )
@@ -45,10 +63,20 @@ local function suspend(self)
     end
 end
 
+-- Clean empty columns
+local function remove_empty_columns(self)
+    for k, v in ipairs(self._cols_priority) do
+        if v:get_children_count() == 0 then
+            self:remove_column()
+        end
+    end
+end
+
 --- When the number of column change, re-balance the elements
 local function balance(self, additional_widgets)
     local elems = {}
 
+    -- Get only the top level, this will preserve tabs and manual split points
     for k, v in ipairs(self._cols_priority) do
         util.table.merge(elems, v:get_widgets())
         v:reset()
@@ -59,28 +87,49 @@ local function balance(self, additional_widgets)
     for k,v in ipairs(elems) do
         self:add(v)
     end
+
+    remove_empty_columns(self)
 end
 
 --- Support 'n' column and 'm' number of master per column
 local function add(self, widget)
     if not widget then return end
 
+    -- By default, there is no column, so nowhere to add the widget, fix this
+    init_col(self)
+
     -- Make sure there is enough masters
     if self._cols_priority[1]:get_children_count() < self._nmaster then
         self._cols_priority[1]:add(widget)
         return
+    elseif #self._cols_priority == 1 then
+        self:add_column()
     end
 
-    -- A master has to go FIXME
---     local masters = self._cols_priority[1]:get_widgets()
---     local old_master = masters[#masters]
---     self._cols_priority[1]:replace(old_master, widget, true)
+    -- For legacy reason, the new clients are added as primary master
+    -- Technically, I should foreach all masters and push them, but
+    -- until someone complain, lets do something a little bit simpler
+    local to_pop = self._cols_priority[1]:get_widgets()[1]
+    if to_pop then
+        self:replace(to_pop, widget, true)
+        widget = to_pop
+    end
 
     local candidate_i, candidate_c = 0, 999
 
-    -- Get the column with the least members
-    for i = 2, #self._cols_priority do
-        local count = self._cols_priority[i]:get_children_count()
+    -- Get the column with the least members, this is a break from the old
+    -- behavior, but I think it make sense, as it optimize space
+    for i = 2, math.max(#self._cols_priority, self._ncol) do
+        local col = self._cols_priority[i]
+
+        -- Create new columns on demand, nothing can have less members than a new col
+        if not col then
+            self:add_column()
+            candidate_i = #self._cols_priority
+            break
+        end
+
+        local count = col:get_children_count()
         if count <= candidate_c then
             candidate_c = count
             candidate_i = i
@@ -92,10 +141,18 @@ end
 
 --- Remove a widget
 local function remove(self, widget)
-    local ret = self:_remove(widget, true)
+    local idx, parent, path = self:index(widget, true)
 
+    -- Avoid and infinite loop
+    local f = parent == self and parent._remove or parent.remove
+    local ret = f(parent, widget)
+
+    -- A master is required
     if self._cols_priority[1]:get_children_count() == 0 then
         self:balance()
+    elseif #path < 3 then
+        -- Indicate a column might be empty
+        remove_empty_columns(self)
     end
 
     return ret
@@ -163,10 +220,11 @@ local function wfact_changed(self, t)
     local diff = (tag.getmwfact(t) - self._mwfact) * 2
     local master = self._cols_priority[1]
 
-    master.mwfact = (master.mwfact or 1) + diff
+    self._mwfact = (1/tag.getmwfact(t))
+
+    master.mwfact = self._mwfact
 
     self:emit_signal("widget::layout_changed")
-    self._mwfact = tag.getmwfact(t)
 end
 
 -- The number of master clients changed
@@ -213,16 +271,6 @@ local function ctr(t, direction)
     main_layout.suspend        = suspend
     main_layout.remove_column  = remove_column
     main_layout.add_column     = add_column
-
-    wake_up(main_layout)
-
-    -- Add some columns
-    for i=1, main_layout._ncol + 1 do
-        main_layout:add_column()
-    end
-
-    -- Apply the default width factor
-    main_layout._cols_priority[#main_layout._cols_priority].mwfact = main_layout._mwfact
 
     return main_layout
 end

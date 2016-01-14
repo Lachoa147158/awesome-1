@@ -428,7 +428,7 @@ for i = 1, 9 do
 end
 
 clientbuttons = awful.util.table.join(
-    awful.button({ }, 1, function (c) if c ~= client.focus then client.focus = c; c:raise() end), end),
+    awful.button({ }, 1, function (c) if c ~= client.focus then client.focus = c; c:raise() end end),
     awful.button({ modkey }, 1, awful.mouse.client.move),
     awful.button({ modkey }, 3, awful.mouse.client.resize))
 

@@ -124,6 +124,7 @@ end
 local img = cairo.ImageSurface.create(cairo.Format.A1, 10000, 10000)
 
 local function redraw(a, handler)
+--     print("REDRAW", debug.traceback())
     if handler.active then
         local cr = cairo.Context(img)
 
@@ -163,8 +164,6 @@ function internal.create_layout(t, l)
 
     l._client_layout_handler = handler
 
-    wake_up(handler)
-
     handler._tag:connect_signal("tagged", function(t,c)
         if handler.active then
             if not client.floating.get(c) then
@@ -200,10 +199,12 @@ function internal.create_layout(t, l)
     end)
 
     t:connect_signal("property::layout", function(t)
-        if tag.getproperty(t, "layout") ~= handler then
-            suspend(handler)
-        else
-            wake_up(handler)
+        if tag.selected(tag.getscreen(t)) == t then
+            if tag.getproperty(t, "layout") ~= handler then
+                suspend(handler)
+            else
+                wake_up(handler)
+            end
         end
     end)
 
@@ -227,10 +228,17 @@ end
 
 -- Swap the client of 2 wrappers
 function internal.swap(handler, client1, client2)
-    local w1 = handler.client_to_wrapper[client1]
-    local w2 = handler.client_to_wrapper[client2]
+
+    -- Handle case where the screens are different
+    local handler1 = tag.getproperty(tag.selected(client1.screen), "layout")
+    local handler2 = tag.getproperty(tag.selected(client2.screen), "layout")
+    local w1 = handler1.client_to_wrapper[client1]
+    local w2 = handler2.client_to_wrapper[client2]
 
     handler.widget:swap(w1, w2, true)
+
+    w1._handler = handler2
+    w2._handler = handler1
 end
 
 local function get_handler_and_wrapper(c)
@@ -368,6 +376,8 @@ function module.register(name, bl, ...)
         l_obj.is_dynamic = true
 
         l_obj.mouse_resize_handler = l.mouse_resize_handler or resize.generic_mouse_resize_handler
+
+        --TODO implement :reset() here
 
         return l_obj
     end})

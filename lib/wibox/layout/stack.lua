@@ -71,6 +71,8 @@ function stack:set_display_top_only(top_only)
 end
 
 function stack:raise(widget, recursive)
+    base.check_widget(widget)
+
     local idx, layout = self:index(widget, recursive)
 
     if not idx or not layout then return end
