@@ -10,7 +10,7 @@ local base_layout = require( "awful.layout.dynamic.base_layout" )
 local function init_col(self)
 
     -- This can change during initialization, but before the tag is selected
-    self._mwfact  =  1   /   tag.getmwfact (self._tag)
+    self._mwfact  =          tag.getmwfact (self._tag)
     self._ncol    = math.max(tag.getncol   (self._tag), 1)
     self._nmaster = math.max(tag.getnmaster(self._tag), 1)
 
@@ -20,7 +20,7 @@ local function init_col(self)
         self:add_column()
 
         -- Apply the default width factor to the master
-        self._cols_priority[1].mwfact = self._mwfact
+        self:set_ratio(self._cols_priority[1], self._mwfact)
     end
 end
 
@@ -30,9 +30,9 @@ local function wake_up(self)
 
     -- If the number of column changed while inactive, this layout doesn't care.
     -- It has its own state, so it only act on the delta while visible
-    self._ncol    =   tag.getncol   (self._tag)
-    self._mwfact  = 1/tag.getmwfact (self._tag)
-    self._nmaster =   tag.getnmaster(self._tag)
+    self._ncol    = tag.getncol   (self._tag)
+    self._mwfact  = tag.getmwfact (self._tag)
+    self._nmaster = tag.getnmaster(self._tag)
 
     -- Connect the signals
     self._tag:connect_signal("property::mwfact" , self._conn_mwfact )
@@ -66,7 +66,7 @@ end
 -- Clean empty columns
 local function remove_empty_columns(self)
     for k, v in ipairs(self._cols_priority) do
-        if v:get_children_count() == 0 then
+        if k ~= 1 and v:get_children_count() == 0 then
             self:remove_column()
         end
     end
@@ -164,11 +164,17 @@ local function add_column(main_layout, idx)
     local l = main_layout._col_layout()
     table.insert(main_layout._cols, idx, l)
     main_layout:_add(l)
+    local idx2 = main_layout:index(l)
 
     if main_layout._primary_col > 0 then
         table.insert(main_layout._cols_priority,l)
     else
         table.insert(main_layout._cols_priority, 1, l)
+    end
+
+    if #main_layout._cols_priority == 2 then
+        -- Apply the default width factor to the master
+        main_layout:set_ratio(main_layout._cols_priority[1], main_layout._mwfact)
     end
 
     return l
@@ -220,9 +226,9 @@ local function wfact_changed(self, t)
     local diff = (tag.getmwfact(t) - self._mwfact) * 2
     local master = self._cols_priority[1]
 
-    self._mwfact = (1/tag.getmwfact(t))
+    self:inc_ratio(self._cols_priority[1], diff)
 
-    master.mwfact = self._mwfact
+    self._mwfact = tag.getmwfact(t)
 
     self:emit_signal("widget::layout_changed")
 end

@@ -6,6 +6,7 @@ local base_layout = require( "awful.layout.dynamic.base_layout" )
 local client    = require( "awful.client"               )
 local tag       = require( "awful.tag"                  )
 local stack_l   = require( "awful.layout.dynamic.tabbed" )
+local resize    = require( "awful.layout.dynamic.resize" )
 
 local internal = {}
 

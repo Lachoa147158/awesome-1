@@ -74,6 +74,8 @@ function fixed:remove(...)
 
     local ret = true
     for _,rem_widget in ipairs(args) do
+        if recursive and k == #args then break end
+
         local idx, l = self:index(rem_widget, recursive)
 
         if idx and l then
