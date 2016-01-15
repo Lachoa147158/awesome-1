@@ -1,4 +1,11 @@
---- Replace the stateless tile
+---------------------------------------------------------------------------
+--- A layout with columns and rows
+--
+-- @author Emmanuel Lepage Vallee &lt;elv1313@gmail.com&gt;
+-- @copyright 2016 Emmanuel Lepage Vallee
+-- @release @AWESOME_VERSION@
+-- @module awful.layout.dynamic.suit.tile
+---------------------------------------------------------------------------
 
 local dynamic = require( "awful.layout.dynamic.base" )
 local wibox   = require( "wibox"                     )

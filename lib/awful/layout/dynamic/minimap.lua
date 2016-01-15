@@ -4,7 +4,7 @@
 -- @author Emmanuel Lepage Vallee &lt;elv1313@gmail.com&gt;
 -- @copyright 2016 Emmanuel Lepage Vallee
 -- @release @AWESOME_VERSION@
--- @module awful.layout.hierarchy
+-- @module awful.layout.dynamic.minimap
 ---------------------------------------------------------------------------
 
 local module = {}

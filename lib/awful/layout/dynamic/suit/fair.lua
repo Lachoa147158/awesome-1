@@ -1,3 +1,4 @@
+---------------------------------------------------------------------------
 --- Replace the stateless fair.
 --
 -- This is not a perfect clone, as the stateful property of this layout
@@ -7,7 +8,13 @@
 -- intended, if you really wish to see the old behavior, a new layout will
 -- be created.
 --
--- This version also support resizing, the older one did not
+-- This version also support resizing, the older one did not--
+-- @author Emmanuel Lepage Vallee &lt;elv1313@gmail.com&gt;
+-- @copyright 2016 Emmanuel Lepage Vallee
+-- @release @AWESOME_VERSION@
+-- @module awful.layout.dynamic.suit.fair
+---------------------------------------------------------------------------
+
 
 local dynamic = require("awful.layout.dynamic.base")
 local wibox = require("wibox")

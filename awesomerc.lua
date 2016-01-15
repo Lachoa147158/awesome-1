@@ -1,27 +1,18 @@
 -- Standard awesome library
 local gears = require("gears")
 local awful = require("awful")
-local wibox = require("wibox")
-local collision = require("collision")()
-
--- Test the new layout system
-
-
---[[
-awful.layout.suit.tile.left   = dynamic.register("tileleft",   simple_layout)
-awful.layout.suit.tile.right  = dynamic.register("tileright",  simple_layout)
-awful.layout.suit.tile.top    = dynamic.register("tiletop",    simple_layout, wibox.layout.flex.horizontal)
-awful.layout.suit.tile.bottom = dynamic.register("tilebottom", simple_layout, wibox.layout.flex.horizontal)]]
-
 awful.rules = require("awful.rules")
 require("awful.autofocus")
 -- Widget and layout library
+local wibox = require("wibox")
 -- Theme handling library
 local beautiful = require("beautiful")
 -- Notification library
 local naughty = require("naughty")
 local menubar = require("menubar")
 local hotkeys_popup = require("awful.hotkeys_popup.widget")
+require("awful.layout.dynamic")
+local collision = require("collision")
 
 -- {{{ Error handling
 -- Check if awesome encountered an error during startup and fell back to
@@ -64,31 +55,24 @@ editor_cmd = terminal .. " -e " .. editor
 -- However, you can use another modifier like Mod1, but it may interact with others.
 modkey = "Mod4"
 
-awful.layout.suit.tile = require("awful.layout.dynamic.suit.tile")
-awful.layout.suit.fair = require("awful.layout.dynamic.suit.fair")
-awful.layout.suit.max  = require("awful.layout.dynamic.suit.max")
-local ts = require("awful.layout.dynamic.suit.treesome")
-local cor =require("awful.layout.dynamic.suit.corner")
 -- Table of layouts to cover with awful.layout.inc, order matters.
 awful.layout.layouts = {
+    awful.layout.suit.floating,
     awful.layout.suit.tile,
     awful.layout.suit.tile.left,
     awful.layout.suit.tile.bottom,
     awful.layout.suit.tile.top,
---     cor,
---     awful.layout.suit.floating,
     awful.layout.suit.fair,
     awful.layout.suit.fair.horizontal,
---     ts, --TODO I broke it again
---     awful.layout.suit.spiral,
---     awful.layout.suit.spiral.dwindle,
+    awful.layout.suit.spiral,
+    awful.layout.suit.spiral.dwindle,
     awful.layout.suit.max,
     awful.layout.suit.max.fullscreen,
---     awful.layout.suit.magnifier,
---     awful.layout.suit.corner.nw,
---     awful.layout.suit.corner.ne,
---     awful.layout.suit.corner.sw,
---     awful.layout.suit.corner.se,
+    awful.layout.suit.magnifier,
+    awful.layout.suit.corner.nw,
+    -- awful.layout.suit.corner.ne,
+    -- awful.layout.suit.corner.sw,
+    -- awful.layout.suit.corner.se,
 }
 -- }}}
 
@@ -171,7 +155,7 @@ mytasklist = {}
 mytasklist.buttons = awful.util.table.join(
                      awful.button({ }, 1, function (c)
                                               if c == client.focus then
---                                                   c.minimized = true
+                                                  c.minimized = true
                                               else
                                                   -- Without this, the following
                                                   -- :isvisible() makes no sense
@@ -249,12 +233,12 @@ root.buttons(awful.util.table.join(
 globalkeys = awful.util.table.join(
     awful.key({ modkey,           }, "s",      hotkeys_popup.show_help,
               {description="show help", group="awesome"}),
---     awful.key({ modkey,           }, "Left",   awful.tag.viewprev,
---               {description = "view previous", group = "tag"}),
---     awful.key({ modkey,           }, "Right",  awful.tag.viewnext,
---               {description = "view next", group = "tag"}),
+    awful.key({ modkey,           }, "Left",   awful.tag.viewprev,
+              {description = "view previous", group = "tag"}),
+    awful.key({ modkey,           }, "Right",  awful.tag.viewnext,
+              {description = "view next", group = "tag"}),
     awful.key({ modkey,           }, "d",      collision.split,
-              {description="show spliting points", group="Collision"}),
+            {description="show spliting points", group="Collision"}),
     awful.key({ modkey,           }, "Escape", awful.tag.history.restore,
               {description = "go back", group = "tag"}),
 
@@ -441,7 +425,7 @@ root.keys(globalkeys)
 awful.rules.rules = {
     -- All clients will match this rule.
     { rule = { },
-      properties = { border_width = 0,
+      properties = { border_width = beautiful.border_width,
                      border_color = beautiful.border_normal,
                      focus = awful.client.focus.filter,
                      raise = true,
@@ -552,6 +536,6 @@ client.connect_signal("mouse::enter", function(c)
     end
 end)
 
-client.connect_signal("focus", function(c) c.border_color = "" end)
-client.connect_signal("unfocus", function(c) c.border_color = "" end)
+-- client.connect_signal("focus", function(c) c.border_color = beautiful.border_focus end)
+-- client.connect_signal("unfocus", function(c) c.border_color = beautiful.border_normal end)
 -- }}}

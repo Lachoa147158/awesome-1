@@ -1,3 +1,4 @@
+---------------------------------------------------------------------------
 --- Split the focussed* client area in two
 -- The `treesome` layout split it to maximize both client size
 -- `treesome.vertical` and `treesome.horizontal` will always split the client
@@ -9,6 +10,12 @@
 --
 -- BUG, over very, very long period of time, this will create tons of empty
 -- subdivision layout. They need to be GCed manually
+--
+-- @author Emmanuel Lepage Vallee &lt;elv1313@gmail.com&gt;
+-- @copyright 2016 Emmanuel Lepage Vallee
+-- @release @AWESOME_VERSION@
+-- @module awful.layout.dynamic.suit.treesome
+---------------------------------------------------------------------------
 
 local dynamic = require("awful.layout.dynamic.base")
 local wibox = require("wibox")

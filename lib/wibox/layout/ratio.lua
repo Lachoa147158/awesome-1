@@ -4,11 +4,8 @@
 -- @release @AWESOME_VERSION@
 -- @classmod wibox.layout.ratio
 --
--- Fill all the space with sub-widgets. Use the horizontal or vertical
--- ratio (mwfact, mhfact) property of the widgets (if any) to evaluate
--- the final size. The default ratio is 1.0. The size is obtained from
--- a product of three of the sum all all ratio relative to the widget
--- own width/height factor.
+-- Fill all the available space. Each widget is assigned a ratio (percentage)
+-- of the total space. Multiple methods are available to ajust this ratio.
 ---------------------------------------------------------------------------
 
 local base  = require("wibox.widget.base" )

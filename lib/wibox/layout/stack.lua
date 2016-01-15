@@ -5,12 +5,12 @@
 -- @classmod wibox.layout.stack
 ---------------------------------------------------------------------------
 
-local base = require("wibox.widget.base")
+local base  = require("wibox.widget.base" )
 local fixed = require("wibox.layout.fixed")
 local table = table
 local pairs = pairs
 local floor = math.floor
-local util = require("awful.util")
+local util  = require("awful.util")
 
 local stack = {mt={}}
 
@@ -26,20 +26,8 @@ function stack:layout(context, width, height)
 
     for k, v in pairs(self.widgets) do
         table.insert(result, base.place_widget_at(v, spacing, spacing, width - 2*spacing, height - 2*spacing))
---         if self._top_only then break end
+        if self._top_only then break end
     end
-
---     print("IN LAYOUT",spacing,spacing,width - 2*spacing,height - 2*spacing)
--- 
---     table.insert(result, base.place_widget_at(self.widgets[1], spacing, spacing, width - 2*spacing, height - 2*spacing))
--- 
---     for i = 2, #self.widgets do
---         local v = self.widgets[i]
---         if self._top_only then
---             v.visible = false --TODO break case where is widget is in multiple layouts, add wrapper
---         end
---         table.insert(result, base.place_widget_at(v, spacing, spacing, width - 2*spacing, height - 2*spacing))
---     end
 
     return result
 end
@@ -70,6 +58,9 @@ function stack:set_display_top_only(top_only)
     self._top_only = top_only
 end
 
+--- Raise a widget to the top of the stack
+-- @param widget the widget
+-- @param[opt] recursive Also look deeper in the hierarchy to find the widget
 function stack:raise(widget, recursive)
     base.check_widget(widget)
 

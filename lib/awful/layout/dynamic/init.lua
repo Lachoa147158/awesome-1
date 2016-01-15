@@ -8,15 +8,50 @@
 -- `awful.layout.dynamic.wrapper` also allow modules to define extra features
 -- for tiled clients.
 --
+-- To enable this system, add `require("awful.layout.dynamic")` at the top
+-- of your rc.lua
+--
 -- @author Emmanuel Lepage Vallee &lt;elv1313@gmail.com&gt;
 -- @copyright 2016 Emmanuel Lepage Vallee
 -- @release @AWESOME_VERSION@
--- @module awful.layout.hierarchy
+-- @module awful.layout.dynamic
 ---------------------------------------------------------------------------
+local static = require( "awful.layout" )
 
 local suits = {
-    base = require("awful.layout.dynamic.base"),
-    suit = require("awful.layout.dynamic.suit")
+    tile   = require("awful.layout.dynamic.suit.tile"   ),
+    fair   = require("awful.layout.dynamic.suit.fair"   ),
+    max    = require("awful.layout.dynamic.suit.max"    ),
+    corner = require("awful.layout.dynamic.suit.corner" ),
 }
+
+-- Monkeypatch the stateless layout system so the dynamic versions are used
+local to_replace = {
+    [static.suit.tile           ] = suits.tile           ,
+    [static.suit.tile.left      ] = suits.tile.left      ,
+    [static.suit.tile.bottom    ] = suits.tile.bottom    ,
+    [static.suit.tile.top       ] = suits.tile.top       ,
+    [static.suit.fair           ] = suits.fair           ,
+    [static.suit.fair.horizontal] = suits.fair.horizontal,
+    [static.suit.max            ] = suits.max            ,
+    [static.suit.max.fullscreen ] = suits.max.fullscreen ,
+    [static.suit.corner.nw      ] = suits.corner.nw      ,
+    [static.suit.corner.ne      ] = suits.corner.ne      ,
+    [static.suit.corner.sw      ] = suits.corner.sw      ,
+    [static.suit.corner.se      ] = suits.corner.se      ,
+}
+
+for k, v in ipairs(static.layouts) do
+    if to_replace[v] then
+        static.layouts[k] = to_replace[v]
+    end
+end
+
+to_replace = {}
+
+static.suit.tile   = suits.tile
+static.suit.fair   = suits.fair
+static.suit.max    = suits.max
+static.suit.corner = suits.corner
 
 return suits

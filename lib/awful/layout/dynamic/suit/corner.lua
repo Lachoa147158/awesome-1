@@ -1,3 +1,4 @@
+---------------------------------------------------------------------------
 --- Dynamic version of the fair layout.
 -- This version emulate the stateless one, but try to maximize the space when
 -- adding a new slave client.
@@ -18,6 +19,12 @@
 --  |-------|---|
 --  |_______|___|
 --
+
+-- @author Emmanuel Lepage Vallee &lt;elv1313@gmail.com&gt;
+-- @copyright 2016 Emmanuel Lepage Vallee
+-- @release @AWESOME_VERSION@
+-- @module awful.layout.dynamic.suit.corner
+---------------------------------------------------------------------------
 
 
 local dynamic = require("awful.layout.dynamic.base")

@@ -1,13 +1,14 @@
---- Stateful layouts. Some layouts provided by this module are direct
--- equivalent of stateless ones while some other are new.
---
--- These layouts are not intended to replace sateless ones. Many
--- `awful.layout.suit`, such as spiral, would not benefit from being stateful
---
--- Stateful layouts require more memory and carry a larger overhead.
+---------------------------------------------------------------------------
+-- @author Emmanuel Lepage Vallee &lt;elv1313@gmail.com&gt;
+-- @copyright 2016 Emmanuel Lepage Vallee
+-- @release @AWESOME_VERSION@
+-- @module awful.layout.dynamic.suit
+---------------------------------------------------------------------------
 
 return {
-    tile     = require("awful.layout.dynamic.suit.tile"),
-    fair     = require("awful.layout.dynamic.suit.fair"),
-    treesome = require("awful.layout.dynamic.suit.treesome")
+    tile     = require( "awful.layout.dynamic.suit.tile"     ),
+    fair     = require( "awful.layout.dynamic.suit.fair"     ),
+    max      = require( "awful.layout.dynamic.suit.max"      ),
+    corner   = require( "awful.layout.dynamic.suit.corner"   ),
+    treesome = require( "awful.layout.dynamic.suit.treesome" )
 }

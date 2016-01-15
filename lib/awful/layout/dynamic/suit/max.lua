@@ -1,4 +1,11 @@
---- Replace the stateless tile
+---------------------------------------------------------------------------
+--- A layout with clients on top of each other filling all the space
+--
+-- @author Emmanuel Lepage Vallee &lt;elv1313@gmail.com&gt;
+-- @copyright 2016 Emmanuel Lepage Vallee
+-- @release @AWESOME_VERSION@
+-- @module awful.layout.dynamic.suit.max
+---------------------------------------------------------------------------
 
 local dynamic = require( "awful.layout.dynamic.base"       )
 local stack   = require( "awful.layout.dynamic.base_stack" )
