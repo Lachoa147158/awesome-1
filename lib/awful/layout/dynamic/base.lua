@@ -8,21 +8,20 @@
 ---------------------------------------------------------------------------
 
 local capi = {client=client}
-local tag       = require( "awful.tag"                  )
-local util      = require( "awful.util"                 )
-local client    = require( "awful.client"               )
-local hierarchy = require( "wibox.hierarchy"            )
-local object    = require( "gears.object"               )
-local aw_layout = require( "awful.layout"               )
-local cairo     = require( "lgi"                        ).cairo
-local resize    = require( "awful.layout.dynamic.resize")
-local base_layout = require( "awful.layout.dynamic.base_layout" )
-local l_wrapper = require( "awful.layout.dynamic.wrapper")
-
+local tag         = require( "awful.tag"                        )
+local util        = require( "awful.util"                       )
+local client      = require( "awful.client"                     )
+local hierarchy   = require( "wibox.hierarchy"                  )
+local aw_layout   = require( "awful.layout"                     )
+local cairo       = require( "lgi"                              ).cairo
+local resize      = require( "awful.layout.dynamic.resize"      )
+local l_wrapper   = require( "awful.layout.dynamic.wrapper"     )
+local xresources  = require( "beautiful.xresources"             )
 
 local internal = {}
 
-function internal.insert_wrapper(handler, c, wrapper)
+-- Add a wrapper to the handler and layout
+local function insert_wrapper(handler, c, wrapper)
 
     local pos = #handler.wrappers+1
     handler.wrappers         [ pos ] = wrapper
@@ -32,7 +31,8 @@ function internal.insert_wrapper(handler, c, wrapper)
     handler.widget:add(wrapper)
 end
 
-function internal.remove_wrapper(handler, c, wrapper)
+-- Remove a wrapper from the handler and layout
+local function remove_wrapper(handler, c, wrapper)
     table.remove(handler.wrappers, handler.client_to_index[c])
     handler.client_to_index  [c] = nil
     handler.client_to_wrapper[c] = nil
@@ -78,10 +78,10 @@ local function wake_up(self)
                 self.client_to_index[c]:wake_up()
                 self.widget:add(self.client_to_index[c])
             else
-                local wrapper = l_wrapper.wrap_client(internal, c)
+                local wrapper = l_wrapper(c)
                 wrapper._handler = self
 
-                internal.insert_wrapper(self, c, wrapper)
+                insert_wrapper(self, c, wrapper)
             end
         end
     end
@@ -89,7 +89,7 @@ local function wake_up(self)
     for k, c in ipairs(removed) do
         local wrapper = self.client_to_wrapper[c]
 
-        internal.remove_wrapper(self, c, wrapper)
+        remove_wrapper(self, c, wrapper)
     end
 
     self.active = true
@@ -104,6 +104,7 @@ local function suspend(self)
     self.active = false
 end
 
+-- Emulate the main "layout" method of a hierarchy
 local function main_layout(self, handler)
 
     local region = cairo.Region.create()
@@ -120,11 +121,12 @@ local function main_layout(self, handler)
 
 end
 
---TODO patch hierarchy to accept contextless drawing or dummy surface
+--TODO Note, Uli gave me better code, I use it elsewhere, but this one is still
+-- more reliable, I just need to fix the other one
 local img = cairo.ImageSurface.create(cairo.Format.A1, 10000, 10000)
 
+-- Place all the clients correctly
 local function redraw(a, handler)
---     print("REDRAW", debug.traceback())
     if handler.active then
         local cr = cairo.Context(img)
 
@@ -151,16 +153,17 @@ function internal.create_layout(t, l)
         _tag              = t,
     }
 
-    handler.hierarchy = hierarchy.new(
-                                {dpi=96}       ,  -- context TODO
-                                l              ,  -- widget
-                                200            ,  -- width TODO
-                                200            ,  -- height TODO
-                                redraw         ,  -- redraw_callback
-                                main_layout    ,  -- layout_callback
-                                handler           -- callback_arg
-                            )
+    local dpi = xresources.get_dpi(tag.getscreen(t) or 1)
 
+    handler.hierarchy = hierarchy.new(
+        {dpi=dpi}   ,
+        l           ,
+        0           ,
+        0           ,
+        redraw      ,
+        main_layout ,
+        handler
+    )
 
     l._client_layout_handler = handler
 
@@ -171,10 +174,10 @@ function internal.create_layout(t, l)
                     handler.client_to_index[c]:wake_up()
                     handler.widget:add(handler.client_to_index[c])
                 else
-                    local wrapper = l_wrapper.wrap_client(internal, c)
+                    local wrapper = l_wrapper(c)
                     wrapper._handler = handler
 
-                    internal.insert_wrapper(handler, c, wrapper)
+                    insert_wrapper(handler, c, wrapper)
                 end
             end
         end
@@ -186,7 +189,7 @@ function internal.create_layout(t, l)
 
             if not wrapper then return end
 
-            internal.remove_wrapper(handler, c, wrapper)
+            remove_wrapper(handler, c, wrapper)
         end
     end)
 
@@ -241,6 +244,7 @@ function internal.swap(handler, client1, client2)
     w2._handler = handler1
 end
 
+-- Helper function to get a wrapper when only knowing the client
 local function get_handler_and_wrapper(c)
     local t = nil
     for k,v in ipairs(c:tags()) do
@@ -261,6 +265,7 @@ local function get_handler_and_wrapper(c)
     return handler, wrapper
 end
 
+-- Register and unregister clients from the layout when they become floating
 capi.client.connect_signal("property::floating", function(c)
     local handler, wrapper = get_handler_and_wrapper(c)
     if not handler then return end
@@ -269,20 +274,21 @@ capi.client.connect_signal("property::floating", function(c)
 
     if not is_floating then
         if not wrapper then
-            wrapper = l_wrapper.wrap_client(internal, c)
+            wrapper = l_wrapper(c)
             wrapper._handler = handler
-            internal.insert_wrapper(handler, c, wrapper)
+            insert_wrapper(handler, c, wrapper)
         else
             wrapper:wake_up()
             handler.widget:add(wrapper, true)
         end
     elseif wrapper then
-        internal.remove_wrapper(handler, c, wrapper)
+        remove_wrapper(handler, c, wrapper)
         handler.widget:remove(wrapper, true)
     end
 
 end)
 
+-- Register and unregister clients from the layout when they become minimized
 capi.client.connect_signal("property::minimized",function(c)
     local handler, wrapper = get_handler_and_wrapper(c)
     if not handler then return end
@@ -292,13 +298,13 @@ capi.client.connect_signal("property::minimized",function(c)
 
     if c.minimized then
         if wrapper then
-            internal.remove_wrapper(handler, c, wrapper)
+            remove_wrapper(handler, c, wrapper)
         end
     else
         if not wrapper then
-            wrapper = l_wrapper.wrap_client(internal, c)
+            wrapper = l_wrapper(c)
             wrapper._handler = handler
-            internal.insert_wrapper(handler, c, wrapper)
+            insert_wrapper(handler, c, wrapper)
         else
             wrapper:wake_up()
             handler.widget:add(wrapper, true)
@@ -307,15 +313,6 @@ capi.client.connect_signal("property::minimized",function(c)
 end)
 
 local module = {}
-
--- Proxy some client/wibox properties
--- local function index(table, key)
---     if key == "mwfact" then
---         return tag.getmwfact(self._client)
---     elseif key == "opacity" then
---         return self._client.opacity
---     end
--- end
 
 --- Register a new type of dynamic layout
 -- @param name An unique name, duplicates are forbidden
@@ -375,7 +372,8 @@ function module.register(name, bl, ...)
         l_obj.name       = name
         l_obj.is_dynamic = true
 
-        l_obj.mouse_resize_handler = l.mouse_resize_handler or resize.generic_mouse_resize_handler
+        l_obj.mouse_resize_handler = l.mouse_resize_handler
+            or resize.generic_mouse_resize_handler
 
         --TODO implement :reset() here
 

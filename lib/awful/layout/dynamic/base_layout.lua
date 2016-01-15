@@ -1,10 +1,17 @@
---- This layout extend wibox.layout.radio and add client specific features such
--- as splitting
+---------------------------------------------------------------------------
+--- A specialised ratio layout with dynamic client layout features
+--
+-- @author Emmanuel Lepage Vallee &lt;elv1313@gmail.com&gt;
+-- @copyright 2016 Emmanuel Lepage Vallee
+-- @release @AWESOME_VERSION@
+-- @module awful.layout.hierarchy
+---------------------------------------------------------------------------
 
 local origin = require( "wibox.layout.ratio" )
 
 local module = {}
 
+-- Push widget in the front and back of the layout
 local function split_callback(wrapper, context, pos)
     if not context.client_widget or not context.source_root then return end
 
@@ -33,6 +40,7 @@ local function split_callback(wrapper, context, pos)
     wrapper:emit_signal("widget::redraw_needed")
 end
 
+-- Create splitting points to add insert widget at the front and back
 local function splitting_points(wrapper, geometry)
     local ret = {}
 
@@ -72,7 +80,8 @@ local function splitting_points(wrapper, geometry)
 end
 
 --- As the layout may have random subdivisions, make sure to call their "raise" too
--- @param self The layout
+-- @param self   The layout
+-- @param widget The widget
 local function raise(self, widget)
     local idx, parent, path = self:index(widget, true)
     -- Self is path[#path], avoid stack overflow

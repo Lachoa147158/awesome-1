@@ -1,16 +1,30 @@
---- A stacked layout with an extra wibox to select the topmost client
+---------------------------------------------------------------------------
+--- A specialised stack layout with a tabbar on top
+--
+-- @todo The tab widget is currently hardcoded, but once well defined, it will
+--   be possible to set a cusom one. Reusing `awful.widget.common` wasn't
+--   really helpful, but could be possible
+--
+-- @author Emmanuel Lepage Vallee &lt;elv1313@gmail.com&gt;
+-- @copyright 2016 Emmanuel Lepage Vallee
+-- @release @AWESOME_VERSION@
+-- @module awful.layout.hierarchy
+---------------------------------------------------------------------------
 
 local capi = {client = client}
-local stack   = require( "awful.layout.dynamic.base_stack" )
-local margins = require( "wibox.layout.margin"             )
-local wibox   = require( "wibox"                           )
-local timer   = require( "gears.timer"                     )
-local beautiful = require( "beautiful" )
+local stack     = require( "awful.layout.dynamic.base_stack" )
+local margins   = require( "wibox.layout.margin"             )
+local wibox     = require( "wibox"                           )
+local timer     = require( "gears.timer"                     )
+local beautiful = require( "beautiful"                       )
 
 local fct = {}
 
+-- Keep only 1 version of each tab, use it in multiple tabbar to reduce the
+-- number of signals
 local tabs = setmetatable({},{__mode="k"})
-local connected,old_focus = false
+
+local connected, old_focus = false, nil
 
 local function focus_changed(c)
     local tab = tabs[c]
@@ -27,6 +41,7 @@ local function focus_changed(c)
     end
 end
 
+--- Create a tab widget
 local function create_tab(c)
     if tabs[c] then return tabs[c] end
 
@@ -42,6 +57,7 @@ local function create_tab(c)
         c:raise()
     end)
 
+    -- Connect only once
     if not connected then
         connected = true
         capi.client.connect_signal("focus", focus_changed)
@@ -60,6 +76,7 @@ local function create_tab(c)
     return bg
 end
 
+--- Create a rudimentary tabbar widget
 local function create_tabbar(w, widgets)
     local flex = wibox.layout.flex.horizontal()
 
@@ -72,7 +89,7 @@ local function create_tabbar(w, widgets)
     w:set_widget(flex)
 end
 
-
+--- Move/resize the wibox to the right spot when the layout change
 local function before_draw_child(self, context, index, child, cr, width, height)
     if not self._wibox then
         self._wibox = wibox({})
@@ -88,11 +105,13 @@ local function before_draw_child(self, context, index, child, cr, width, height)
     self._wibox.visible = true
 end
 
+--- Hide the wibox
 local function suspend(self)
     self._wibox.visible = false
     self._s:suspend()
 end
 
+--- Display the wibox
 local function wake_up(self)
     self._wibox.visible = true
     self._s:wake_up()
@@ -129,7 +148,8 @@ local function remove(self, widget)
     end
 end
 
-local function ctr2(self, t)
+--- Construct a tabbed layout
+local function ctr(self, t)
     local s = stack(false)
 
     local m = margins(s)
@@ -161,4 +181,4 @@ local function ctr2(self, t)
     return m
 end
 
-return ctr2
+return ctr

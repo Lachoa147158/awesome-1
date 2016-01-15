@@ -22,11 +22,12 @@ local util  = require("awful.util")
 local ratio = {}
 
 -- Compute the sum of all ratio (ideally, it should be 1)
-local function gen_sum(self)
+local function gen_sum(self, i_s, i_e)
     local sum, new_w = 0,0
 
     -- Get the sum of all widget ratio
-    for k, v in pairs(self.widgets) do
+    for i = i_s or 1, i_e or #self.widgets do
+        local v = self.widgets[i]
         if self._ratios[v] then
             sum = sum + self._ratios[v]
         else
@@ -34,7 +35,7 @@ local function gen_sum(self)
         end
     end
 
-    assert(sum < 1.01)
+--     assert(sum < 1.01)
 
     return sum, new_w
 end
@@ -120,19 +121,24 @@ end
 function ratio:inc_ratio(widget, percent)
     if #self.widgets ==  1 or (not widget) or percent < -1 or percent > 1 then return end
 
-    print(self, widget)
     assert(self._ratios[widget])
 
     self:set_ratio(widget, self._ratios[widget] - percent)
 end
 
 --- Set the ratio of "widget"
--- @param widget The widget to change
+-- @param widget The widget to change or its index
 -- @param percent An floating point value between -1 and 0.1
 function ratio:set_ratio(widget, r)
     if not r or #self.widgets ==  1 or (not widget) or r < -1 or r > 1 then return end
 
-    local idx = self:index(widget)
+    local idx
+    if type(widget) == "number" then
+        idx, widget = widget, self.widgets[widget]
+    else
+        idx = self:index(widget)
+    end
+
     assert(idx)
 
 
@@ -155,6 +161,40 @@ function ratio:set_ratio(widget, r)
     self:emit_signal("widget::layout_changed")
 end
 
+--- Update all widgets to match a set of a ratio
+-- @param widget A widget
+-- @param before The sum of the ratio before the widget
+-- @param itself The ratio for "widget"
+-- @param after The sum of the ratio after the widget
+function ratio:ajust_ratio(widget, before, itself, after)
+    local idx = self:index(widget)
+    assert(idx)
+
+    -- Compute the before and after offset to be applied to each widgets
+    local before_count, after_count = idx-1, #self.widgets - idx
+
+    local b, a = gen_sum(self, 1, idx-1), gen_sum(self, idx+1)
+
+    local db, da = (before - b)/before_count, (after - a)/after_count
+
+    -- Apply the new ratio
+    self._ratios[widget] = itself
+
+    -- Equality split the delta among widgets before and after
+    for i = 1, idx -1 do
+        self._ratios[self.widgets[i]] = self._ratios[self.widgets[i]] + db
+    end
+    for i = idx+1, #self.widgets do
+        self._ratios[self.widgets[i]] = self._ratios[self.widgets[i]] + da
+    end
+
+    normalize(self)
+
+    self:emit_signal("widget::layout_changed")
+end
+
+--- Add some widgets to the given fixed layout
+-- @tparam widget ... Widgets that should be added (must at least be one)
 function ratio:add(...)
     -- Clear the cache
     for k,v in ipairs({...}) do
@@ -168,6 +208,10 @@ function ratio:add(...)
     normalize(self)
 end
 
+--- Remove one or more widgets from the layout
+--- @tparam widget ... Widgets that should be removed (must at least be one)
+--- The last parameter can be a boolean, forcing a recursive seach of the
+--- widget(s) to remove.
 function ratio:remove(...)
     -- Clear the cache
     for k,v in ipairs({...}) do
@@ -179,6 +223,9 @@ function ratio:remove(...)
     normalize(self)
 end
 
+--- Insert a new widget in the layout at position `index`
+-- @param index The position
+-- @param widget The widget
 function ratio:insert(...)
     -- Clear the cache
     for k,v in ipairs({...}) do

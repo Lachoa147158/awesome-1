@@ -1,14 +1,20 @@
---- Replace the stateless tile
+---------------------------------------------------------------------------
+--- A specialised stack layout with dynamic client layout features
+--
+-- @author Emmanuel Lepage Vallee &lt;elv1313@gmail.com&gt;
+-- @copyright 2016 Emmanuel Lepage Vallee
+-- @release @AWESOME_VERSION@
+-- @module awful.layout.hierarchy
+---------------------------------------------------------------------------
 
-local wibox   = require( "wibox"                     )
-local tag     = require( "awful.tag"                 )
-local util    = require( "awful.util"                )
+local wibox = require( "wibox"      )
+local util  = require( "awful.util" )
 
---- As all widgets are on the top of eachother, it is necessary to add the groups
--- elsewhere
+--- As all widgets are on the top of each other, it is necessary to add the
+-- groups elsewhere
 local function splitting_points(self, geometry)
     local pts = {}
-    --HACK
+
     local top_level_widgets = self:get_widgets()
 
     for k,w in ipairs(top_level_widgets) do

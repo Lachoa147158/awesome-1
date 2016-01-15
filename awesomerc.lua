@@ -72,13 +72,13 @@ local cor =require("awful.layout.dynamic.suit.corner")
 -- Table of layouts to cover with awful.layout.inc, order matters.
 awful.layout.layouts = {
     awful.layout.suit.tile,
---     awful.layout.suit.tile.left,
---     awful.layout.suit.tile.bottom,
---     awful.layout.suit.tile.top,
+    awful.layout.suit.tile.left,
+    awful.layout.suit.tile.bottom,
+    awful.layout.suit.tile.top,
 --     cor,
 --     awful.layout.suit.floating,
---     awful.layout.suit.fair,
---     awful.layout.suit.fair.horizontal,
+    awful.layout.suit.fair,
+    awful.layout.suit.fair.horizontal,
 --     ts, --TODO I broke it again
 --     awful.layout.suit.spiral,
 --     awful.layout.suit.spiral.dwindle,
@@ -428,7 +428,7 @@ for i = 1, 9 do
 end
 
 clientbuttons = awful.util.table.join(
-    awful.button({ }, 1, function (c) if c ~= client.focus then client.focus = c; c:raise() end end),
+    awful.button({ }, 1, function (c) client.focus = c; c:raise() end),
     awful.button({ modkey }, 1, awful.mouse.client.move),
     awful.button({ modkey }, 3, awful.mouse.client.resize))
 
@@ -441,7 +441,7 @@ root.keys(globalkeys)
 awful.rules.rules = {
     -- All clients will match this rule.
     { rule = { },
-      properties = { border_width = beautiful.border_width,
+      properties = { border_width = 0,
                      border_color = beautiful.border_normal,
                      focus = awful.client.focus.filter,
                      raise = true,

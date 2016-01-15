@@ -1,4 +1,11 @@
---- Generate a minimap of all the elements in the layer
+---------------------------------------------------------------------------
+--- Generate a list of rectangles representing a layout, even when hidden
+--
+-- @author Emmanuel Lepage Vallee &lt;elv1313@gmail.com&gt;
+-- @copyright 2016 Emmanuel Lepage Vallee
+-- @release @AWESOME_VERSION@
+-- @module awful.layout.hierarchy
+---------------------------------------------------------------------------
 
 local module = {}
 
@@ -40,7 +47,8 @@ local function scale_rects(rects, wa_w, wa_h, res_w, res_h)
     --TODO
 end
 
-local function minimap(handler, width, height)
+-- WORK IN PROGRESS
+local function minimap(handler, width, height, floating)
     local rects, wa_w, wa_h = get_rects(handler)
 
     for k, rect in ipairs(rects) do

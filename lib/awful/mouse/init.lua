@@ -345,7 +345,7 @@ end
 --- Resize a client.
 -- @param c The client to resize, or the focused one by default.
 -- @param corner The corner to grab on resize. Auto detected by default.
-function mouse.client.resize(c, corner)
+function mouse.client.resize(c, corner, args)
     local c = c or capi.client.focus
 
     if not c then return end
@@ -361,9 +361,9 @@ function mouse.client.resize(c, corner)
     local corner, x, y = mouse.client.corner(c, corner)
 
     if lay == layout.suit.floating or aclient.floating.get(c) then
-        return layout.suit.floating.mouse_resize_handler(c, corner, x, y)
+        return layout.suit.floating.mouse_resize_handler(c, corner, x, y, args)
     elseif lay.mouse_resize_handler then
-        return lay.mouse_resize_handler(c, corner, x, y)
+        return lay.mouse_resize_handler(c, corner, x, y, args)
     end
 end
 
