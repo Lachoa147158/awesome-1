@@ -12,8 +12,7 @@
 local matrix = require("gears.matrix")
 local protected_call = require("gears.protected_call")
 local cairo = require("lgi").cairo
-local base = require("wibox.widget.base")
-local no_parent = base.no_parent_I_know_what_I_am_doing
+local wcache = require("wibox.cache")
 
 local hierarchy = {}
 
@@ -103,7 +102,7 @@ function hierarchy_update(self, context, widget, width, height, region, matrix_t
 
     -- Update children
     local old_children = self._children
-    local layout_result = base.layout_widget(no_parent, context, widget, width, height)
+    local layout_result = wcache.layout_widget(wcache.no_parent_I_know_what_I_am_doing, context, widget, width, height)
     self._children = {}
     for _, w in ipairs(layout_result or {}) do
         local r = table.remove(old_children, 1)

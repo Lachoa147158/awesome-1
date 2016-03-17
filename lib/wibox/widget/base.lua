@@ -10,6 +10,8 @@ local cache = require("gears.cache")
 local matrix = require("gears.matrix")
 local protected_call = require("gears.protected_call")
 local util = require("awful.util")
+local hierarchy = require("wibox.hierarchy")
+local wcache = require("wibox.cache")
 local setmetatable = setmetatable
 local pairs = pairs
 local type = type
@@ -135,55 +137,6 @@ end
 
 -- }}}
 
--- {{{ Caches
-
--- Indexes are widgets, allow them to be garbage-collected
-local widget_dependencies = setmetatable({}, { __mode = "kv" })
-
--- Get the cache of the given kind for this widget. This returns a gears.cache
--- that calls the callback of kind `kind` on the widget.
-local function get_cache(widget, kind)
-    if not widget._widget_caches[kind] then
-        widget._widget_caches[kind] = cache.new(function(...)
-            return protected_call(widget[kind], widget, ...)
-        end)
-    end
-    return widget._widget_caches[kind]
-end
-
--- Special value to skip the dependency recording that is normally done by
--- base.fit_widget() and base.layout_widget(). The caller must ensure that no
--- caches depend on the result of the call and/or must handle the childs
--- widget::layout_changed signal correctly when using this.
-base.no_parent_I_know_what_I_am_doing = {}
-
--- Record a dependency from parent to child: The layout of parent depends on the
--- layout of child.
-local function record_dependency(parent, child)
-    if parent == base.no_parent_I_know_what_I_am_doing then
-        return
-    end
-
-    base.check_widget(parent)
-    base.check_widget(child)
-
-    local deps = widget_dependencies[child] or {}
-    deps[parent] = true
-    widget_dependencies[child] = deps
-end
-
--- Clear the caches for `widget` and all widgets that depend on it.
-local clear_caches
-function clear_caches(widget)
-    local deps = widget_dependencies[widget] or {}
-    widget_dependencies[widget] = {}
-    widget._widget_caches = {}
-    for w in pairs(deps) do
-        clear_caches(w)
-    end
-end
--- }}}
-
 --- Figure out the geometry in device coordinate space. This gives only tight
 -- bounds if no rotations by non-multiples of 90° are used.
 function base.rect_to_device_geometry(cr, x, y, width, height)
@@ -200,7 +153,7 @@ end
 -- @param height The available height for the widget
 -- @return The width and height that the widget wants to use
 function base.fit_widget(parent, context, widget, width, height)
-    record_dependency(parent, widget)
+    wcache.record_dependency(parent, widget)
 
     if not widget.visible then
         return 0, 0
@@ -212,10 +165,10 @@ function base.fit_widget(parent, context, widget, width, height)
 
     local w, h = 0, 0
     if widget.fit then
-        w, h = get_cache(widget, "fit"):get(context, width, height)
+        w, h = wcache.get_cache(widget, "fit"):get(context, width, height)
     else
         -- If it has no fit method, calculate based on the size of children
-        local children = base.layout_widget(parent, context, widget, width, height)
+        local children = wcache.layout_widget(parent, context, widget, width, height)
         for _, info in ipairs(children or {}) do
             local x, y, w2, h2 = matrix.transform_rectangle(info._matrix,
                 0, 0, info._width, info._height)
@@ -231,32 +184,6 @@ function base.fit_widget(parent, context, widget, width, height)
     w = math.max(0, math.min(w, width))
     h = math.max(0, math.min(h, height))
     return w, h
-end
-
---- Lay out a widget for the given available width and height. This calls the
--- widget's `:layout` callback and caches the result for later use. Never call
--- `:layout` directly, but always through this function! However, normally there
--- shouldn't be any reason why you need to use this function.
--- @param parent The parent widget which requests this information.
--- @param context The context in which we are laid out.
--- @param widget The widget to layout (this uses widget:layout(context, width, height)).
--- @param width The available width for the widget
--- @param height The available height for the widget
--- @return The result from the widget's `:layout` callback.
-function base.layout_widget(parent, context, widget, width, height)
-    record_dependency(parent, widget)
-
-    if not widget.visible then
-        return
-    end
-
-    -- Sanitize the input. This also filters out e.g. NaN.
-    width = math.max(0, width)
-    height = math.max(0, height)
-
-    if widget.layout then
-        return get_cache(widget, "layout"):get(context, width, height)
-    end
 end
 
 -- Handle a button event on a widget. This is used internally and should not be
@@ -534,9 +461,9 @@ function base.make_widget(proxy, widget_name)
     end
 
     -- Set up caches
-    clear_caches(ret)
+    wcache.clear_caches(ret)
     ret:connect_signal("widget::layout_changed", function()
-        clear_caches(ret)
+        wcache.clear_caches(ret)
     end)
 
     -- Add functions
