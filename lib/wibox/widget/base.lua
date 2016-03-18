@@ -12,6 +12,7 @@ local protected_call = require("gears.protected_call")
 local util = require("awful.util")
 local hierarchy = require("wibox.hierarchy")
 local wcache = require("wibox.cache")
+local cairo = require( "lgi" ).cairo
 local setmetatable = setmetatable
 local pairs = pairs
 local type = type
@@ -133,6 +134,61 @@ function base.widget:index(widget, recursive, ...)
     end
 
     return nil, self, {}
+end
+
+local function run_in_hierarchy(self, cr, width, height)
+    local function main_layout(h)
+        h:update({dpi=96}, self, width, height)
+    end
+
+    local function redraw(h)
+        h:draw({dpi=96}, cr)
+    end
+
+    local h = hierarchy.new({dpi=96}, self, width, height, redraw, main_layout, {})
+
+    main_layout(h)
+    h:_redraw()
+end
+
+--- Create an SVG file with this widget content.
+-- This is dynamic, so the SVG will be updated along with the widget content.
+-- because of this, the painting may happen hover multiple event loop cycles.
+-- @tparam string path The output file path
+-- @tparam number width The surface width
+-- @tparam number height The surface height
+function base.widget:to_svg(path, width, height)
+    local img = cairo.SvgSurface.create(path, width, height)
+    local cr = cairo.Context(img)
+    run_in_hierarchy(self, cr, width, height)
+    --TODO add unit test to see if the hierarchy is collected
+end
+
+--- Create a cairo surface with this widget content.
+-- This is dynamic, so the SVG will be updated along with the widget content.
+-- because of this, the painting may happen hover multiple event loop cycles.
+-- @tparam number width The surface width
+-- @tparam number height The surface height
+-- @param[opt=cairo.Format.ARGB32] format The surface format
+function base.widget:to_surface(width, height, format)
+    local img = cairo.ImageSurface(format or cairo.Format.ARGB32, width, height)
+    local cr = cairo.Context(img)
+    run_in_hierarchy(self, cr, width, height)
+
+    return img
+end
+
+--- Create an PNG file with this widget content.
+-- This is dynamic, so the SVG will be updated along with the widget content.
+-- because of this, the painting may happen hover multiple event loop cycles.
+-- @tparam string path The output file path
+-- @tparam number width The surface width
+-- @tparam number height The surface height
+function base.widget:to_png(path, width, height)
+    local img = cairo.ImageSurface(cairo.Format.ARGB32, width, height)
+    local cr = cairo.Context(img)
+    run_in_hierarchy(self, cr, width, height)
+    cr:write_to_png(path)
 end
 
 -- }}}
