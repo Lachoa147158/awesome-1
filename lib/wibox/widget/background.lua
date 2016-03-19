@@ -112,7 +112,9 @@ function background:set_children(children)
     self:set_widget(children[1])
 end
 
---- Set the background to use
+--- Set the background to use.
+--@DOC_wibox_widget_background_bg_EXAMPLE@
+-- @param bg A color string, pattern or gradient (see `gears.color`)
 function background:set_bg(bg)
     if bg then
         self.background = color(bg)
@@ -122,7 +124,9 @@ function background:set_bg(bg)
     self:emit_signal("widget::redraw_needed")
 end
 
---- Set the foreground to use
+--- Set the foreground to use.
+--@DOC_wibox_widget_background_fg_EXAMPLE@
+-- @param fg A color string, pattern or gradient (see `gears.color`)
 function background:set_fg(fg)
     if fg then
         self.foreground = color(fg)
@@ -132,23 +136,29 @@ function background:set_fg(fg)
     self:emit_signal("widget::redraw_needed")
 end
 
---- Set the background shape
--- @param shape A function taking a context, width and height as arguments
+--- Set the background shape.
+--
 -- Any other arguments will be passed to the shape function
+--@DOC_wibox_widget_background_shape_EXAMPLE@
+-- @param shape A function taking a context, width and height as arguments
 function background:set_shape(shape, ...)
     self._shape = shape
     self._shape_args = {...}
     self:emit_signal("widget::redraw_needed")
 end
 
---- When a `shape` is set, also draw a border
+--- When a `shape` is set, also draw a border.
+--
+-- See `wibox.widget.background.set_shape` for an usage example.
 -- @tparam number width The border width
 function background:set_shape_border_width(width)
     self._shape_border_width = width
     self:emit_signal("widget::redraw_needed")
 end
 
---- When a `shape` is set, also draw a border
+--- When a `shape` is set, also draw a border.
+--
+-- See `wibox.widget.background.set_shape` for an usage example.
 -- @param[opt=self.foreground] fg The border color, pattern or gradient
 function background:set_shape_border_color(fg)
     self._shape_border_color = fg
