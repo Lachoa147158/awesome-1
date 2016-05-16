@@ -6,8 +6,12 @@ local naughty = require("naughty")
 local max = require("awful.layout.suit.max")
 
 local real_screen = screen[1]
+real_screen:fake_resize(300, 0, real_screen.geometry.width, 49)
+
 local fake_screen = screen.fake_add(50, 50, 500, 500)
 local test_client1, test_client2
+
+-- Resize the real screen to avoid overlapping
 
 local steps = {
     -- Step 1: Set up some clients to experiment with and assign them as needed
@@ -42,12 +46,13 @@ local steps = {
         -- Everything should be done by now
         local geom = test_client2:geometry()
         local bw = test_client2.border_width
-        assert(geom.x == 100, geom.x)
-        assert(geom.y == 110, geom.y)
-        assert(geom.width + 2*bw == 600, geom.width + 2*bw)
-        assert(geom.height + 2*bw == 610, geom.height + 2*bw)
-
         local wb = mywibox[fake_screen]
+
+        assert(geom.x == 100                        , geom.x            )
+        assert(geom.y == 110 + wb.height            , geom.y            )
+        assert(geom.width + 2*bw == 600             , geom.width + 2*bw )
+        assert(geom.height + 2*bw == 610 - wb.height, geom.height + 2*bw)
+
         assert(wb.x == 100, wb.x)
         assert(wb.y == 110, wb.y)
         assert(wb.width == 600, wb.width)
