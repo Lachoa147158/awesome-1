@@ -62,6 +62,8 @@ function wibox:find_widgets(x, y)
 end
 
 function wibox:get_screen()
+     local ret = rawget(self, "screen__")
+     if ret then return ret end
     local sgeos = {}
 
     for s in capi.screen do
@@ -76,6 +78,7 @@ function wibox:set_screen(s)
     if s ~= self:get_screen() then
         self.x = s.geometry.x
         self.y = s.geometry.y
+        rawset(self, "screen__", s)
     end
 end
 
