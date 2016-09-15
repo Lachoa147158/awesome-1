@@ -130,6 +130,9 @@ local function ctr()
     main_layout._private.raise_widget  = main_layout.raise_widget
     main_layout._private.add    = main_layout.add
 
+    -- Notify extensions that any elements further down is overlapping
+    main_layout.is_stack = true
+
     rawset(main_layout, "suspend"         , suspend         )
     rawset(main_layout, "wake_up"         , wake_up         )
     rawset(main_layout, "raise_widget"    , raise_widget    )
