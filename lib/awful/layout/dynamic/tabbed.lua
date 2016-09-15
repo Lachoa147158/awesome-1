@@ -131,6 +131,8 @@ local function remove_widgets(self, widget)
 
             local w = self.children[1]
             handler.widget:replace_widget(self._m, w, true)
+            self._wibox.visible = false
+            self._wibox = nil
         end)
     end
 end
