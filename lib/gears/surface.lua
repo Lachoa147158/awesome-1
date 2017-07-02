@@ -49,13 +49,16 @@ function surface.load_uncached_silently(_surface, default)
     if type(_surface) == "string" then
         local err
         file = _surface
-        _surface, err = capi.awesome.load_image(file)
+
+        -- `_s` is an undocumented workaround until #908 is implemented
+        _surface, err, _s = capi.awesome.load_image(file)
+
         if not _surface then
             return get_default(default), err
         end
     end
     -- Everything else gets forced into a surface
-    return cairo.Surface(_surface, true)
+    return _s or cairo.Surface(_surface, true)
 end
 
 --- Try to convert the argument into an lgi cairo surface.
@@ -78,6 +81,7 @@ function surface.load_silently(_surface, default)
             -- Cache the file
             surface_cache[_surface] = result
         end
+
         return result, err
     end
     return surface.load_uncached_silently(_surface, default)
