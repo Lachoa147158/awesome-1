@@ -22,6 +22,7 @@ local screen = require("awful.screen")
 local util = require("awful.util")
 local gtable = require("gears.table")
 local gfs = require("gears.filesystem")
+local nnotif = require("naughty.notification")
 local beautiful = require("beautiful")
 local wibox = require("wibox")
 local surface = require("gears.surface")
@@ -439,6 +440,8 @@ function naughty.destroy_all_notifications(screens, reason)
     return ret
 end
 
+--TODO v5 Rename to get_by_id
+
 --- Get notification by ID
 --
 -- @param id ID of the notification
@@ -687,7 +690,10 @@ function naughty.notify(args)
         beautiful.notification_margin
     local opacity = args.opacity or preset.opacity or
         beautiful.notification_opacity
-    local notification = { screen = s, destroy_cb = destroy_cb, timeout = timeout }
+    local notification = nnotif._create {
+        screen = s,
+        destroy_cb = destroy_cb,
+        timeout = timeout }
 
     -- replace notification if needed
     local reuse_box
