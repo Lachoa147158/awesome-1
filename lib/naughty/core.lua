@@ -95,7 +95,14 @@ gtable.crush(naughty, require("naughty.constants"))
 -- @tfield number undefined
 -- @table notification_closed_reason
 
--- True if notifying is suspended
+--- The global suspension state.
+--
+-- When suspended, no notification widget should interrupt the user. This is
+-- useful when watching movies or doing presentations.
+--
+-- @property suspended
+-- @param boolean
+
 local suspended = false
 
 --TODO v5 Deprecate the public `naughty.notifications` (to make it private)
@@ -128,13 +135,23 @@ capi.screen.connect_signal("removed", function(scr)
     naughty.notifications[scr] = nil
 end)
 
---- Notification state
+--- Notification state.
+--
+-- This function is deprecated, use `naughty.suspended`.
+--
+-- @deprecated naughty.is_suspended
 function naughty.is_suspended()
+    gdebug.deprecate("Use naughty.suspended", {deprecated_in=5})
     return suspended
 end
 
---- Suspend notifications
+--- Suspend notifications.
+--
+-- This function is deprecated, use `naughty.suspended = true`.
+--
+-- @deprecated naughty.suspend
 function naughty.suspend()
+    gdebug.deprecate("Use naughty.suspended = true", {deprecated_in=5})
     suspended = true
 end
 
@@ -183,8 +200,7 @@ function naughty.disconnect_signal(name, func)
     return false
 end
 
---- Resume notifications
-function naughty.resume()
+local function resume()
     suspended = false
     for _, v in pairs(naughty.notifications.suspended) do
         v:emit_signal("request::display")
@@ -193,10 +209,23 @@ function naughty.resume()
     naughty.notifications.suspended = { }
 end
 
---TODO v5 replace toggle/resume/suspend/is_suspended by a single property
+--- Resume notifications.
+--
+-- This function is deprecated, use `naughty.suspended = false`.
+--
+-- @deprecated naughty.resume
+function naughty.resume()
+    gdebug.deprecate("Use naughty.suspended = false", {deprecated_in=5})
+    resume()
+end
 
---- Toggle notification state
+--- Toggle notification state.
+--
+-- This function is deprecated, use `naughty.suspended = not naughty.suspended`.
+--
+-- @deprecated naughty.toggle
 function naughty.toggle()
+    gdebug.deprecate("Use naughty.suspended = not naughty.suspended", {deprecated_in=5})
     if suspended then
         naughty.resume()
     else
@@ -463,6 +492,26 @@ function naughty.notify(args)
     return notification
 end
 
-return naughty
+local function index_miss(_, key)
+    if key == "suspended" then
+        return suspended
+    else
+        return nil
+    end
+end
+
+local function set_index_miss(_, key, value)
+    if key == "suspended" then
+        assert(type(value) == "boolean")
+        suspended = value
+        if value then
+            resume()
+        end
+    else
+        rawset(naughty, key, value)
+    end
+end
+
+return setmetatable(naughty, {__index = index_miss, __newindex = set_index_miss})
 
 -- vim: filetype=lua:expandtab:shiftwidth=4:tabstop=8:softtabstop=4:textwidth=80

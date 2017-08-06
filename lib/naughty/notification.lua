@@ -263,7 +263,7 @@ function notification:set_timeout(timeout)
     if timeout > 0 then
         local timer_die = timer { timeout = timeout }
         timer_die:connect_signal("timeout", function() die(cst.notification_closed_reason.expired) end)
-        if not self.suspended then
+        if not self.suspended then --FIXME there's still a dependency loop to fix before it works
             timer_die:start()
         end
 

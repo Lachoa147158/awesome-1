@@ -498,7 +498,7 @@ function naughty.default_notification_handler(notification, args)
     -- insert the notification to the table
     table.insert(current_notifications[s][notification.position], notification)
 
-    if suspended and not args.ignore_suspend then
+    if naughty.suspended and not args.ignore_suspend then
         notification.box.visible = false
     end
 end
