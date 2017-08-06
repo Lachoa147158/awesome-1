@@ -25,6 +25,47 @@ local cst     = require("naughty.constants")
 
 local notification = {}
 
+--- Notifications font.
+-- @beautiful beautiful.notification_font
+-- @tparam string|lgi.Pango.FontDescription notification_font
+
+--- Notifications background color.
+-- @beautiful beautiful.notification_bg
+-- @tparam color notification_bg
+
+--- Notifications foreground color.
+-- @beautiful beautiful.notification_fg
+-- @tparam color notification_fg
+
+--- Notifications border width.
+-- @beautiful beautiful.notification_border_width
+-- @tparam int notification_border_width
+
+--- Notifications border color.
+-- @beautiful beautiful.notification_border_color
+-- @tparam color notification_border_color
+
+--- Notifications shape.
+-- @beautiful beautiful.notification_shape
+-- @tparam[opt] gears.shape notification_shape
+-- @see gears.shape
+
+--- Notifications opacity.
+-- @beautiful beautiful.notification_opacity
+-- @tparam[opt] int notification_opacity
+
+--- Notifications margin.
+-- @beautiful beautiful.notification_margin
+-- @tparam int notification_margin
+
+--- Notifications width.
+-- @beautiful beautiful.notification_width
+-- @tparam int notification_width
+
+--- Notifications height.
+-- @beautiful beautiful.notification_height
+-- @tparam int notification_height
+
 --- Unique identifier of the notification.
 -- This is the equivalent to a PID as allows external applications to select
 -- notifications.
