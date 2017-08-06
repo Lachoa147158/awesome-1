@@ -15,7 +15,6 @@ local gdebug = require("gears.debug")
 local screen = require("awful.screen")
 local util = require("awful.util")
 local gtable = require("gears.table")
-local nnotif = require("naughty.notification")
 local beautiful = require("beautiful")
 local dpi = beautiful.xresources.apply_dpi
 
@@ -399,7 +398,59 @@ end
 --  including, but not limited to all `naughty.notification` properties.
 -- @signal request::preset
 
+
+
+-- Register a new notification object.
+local function register(notification, args)
+
+    -- Add the some more properties
+    rawset(notification, "get_suspended", get_suspended)
+
+    --TODO v5 uncouple the notifications and the screen
+    local s = get_screen(args.screen or notification.preset.screen or screen.focused())
+
+    -- insert the notification to the table
+    table.insert(naughty.notifications[s][notification.position], notification)
+
+    if suspended and not args.ignore_suspend then
+        table.insert(naughty.notifications.suspended, notification)
+    end
+
+    naughty.emit_signal("added", notification, args)
+
+    assert(rawget(notification, "preset"))
+
+    -- return the notification
+    return notification
+end
+
+naughty.connect_signal("new", register)
+
+local function index_miss(_, key)
+    if key == "suspended" then
+        return suspended
+    else
+        return nil
+    end
+end
+
+local function set_index_miss(_, key, value)
+    if key == "suspended" then
+        assert(type(value) == "boolean")
+        suspended = value
+        if value then
+            resume()
+        end
+    else
+        rawset(naughty, key, value)
+    end
+end
+
 --- Create a notification.
+--
+-- This function is deprecated, create notification objects instead:
+--
+--    local notif = naughty.notification(args)
 --
 -- @tab args The argument table containing any of the arguments below.
 -- @string[opt=""] args.text Text of the notification.
@@ -444,72 +495,20 @@ end
 -- @usage naughty.notify({ title = "Achtung!", text = "You're idling", timeout = 0 })
 -- @treturn ?table The notification object, or nil in case a notification was
 --   not displayed.
+-- @deprecated naughty.notify
+
+local nnotif = nil
+
 function naughty.notify(args)
-    if naughty.config.notify_callback then
-        args = naughty.config.notify_callback(args)
-        if not args then return end
-    end
+    gdebug.deprecate(
+        "Use local notif = naughty.notification(args)",
+        {deprecated_in=5}
+    )
 
-    -- Create the notification object
-    local notification = nnotif._create(args)
+    --TODO v6 remove this hack
+    nnotif = nnotif or require("naughty.notification")
 
-    -- Add the some more properties
-    rawset(notification, "get_suspended", get_suspended)
-
-    -- Make sure all signals bubble up
-    notification:_connect_everything(naughty.emit_signal)
-
-    -- Allow extensions to create override the preset with custom data
-    naughty.emit_signal("request::preset", notification, args)
-
-    -- gather variables together
-    rawset(notification, "preset", gtable.join(
-        naughty.config.defaults or {},
-        args.preset or naughty.config.presets.normal or {},
-        rawget(notification, "preset") or {}
-    ))
-
-    --TODO v5 uncouple the notifications and the screen
-    local s = get_screen(args.screen or notification.preset.screen or screen.focused())
-
-    -- insert the notification to the table
-    table.insert(naughty.notifications[s][notification.position], notification)
-
-    if suspended and not args.ignore_suspend then
-        table.insert(naughty.notifications.suspended, notification)
-    end
-
-    -- Let all listeners handle the actual visual aspects
-    if (not notification.ignore) and (not notification.preset.ignore) then
-        naughty.emit_signal("request::display", notification, args)
-    end
-
-    naughty.emit_signal("added", notification, args)
-
-    assert(rawget(notification, "preset"))
-
-    -- return the notification
-    return notification
-end
-
-local function index_miss(_, key)
-    if key == "suspended" then
-        return suspended
-    else
-        return nil
-    end
-end
-
-local function set_index_miss(_, key, value)
-    if key == "suspended" then
-        assert(type(value) == "boolean")
-        suspended = value
-        if value then
-            resume()
-        end
-    else
-        rawset(naughty, key, value)
-    end
+    return nnotif(args)
 end
 
 return setmetatable(naughty, {__index = index_miss, __newindex = set_index_miss})

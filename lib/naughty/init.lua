@@ -10,6 +10,7 @@ if dbus then
 end
 
 naughty.widget = require("naughty.widget")
+naughty.notification = require("naughty.notification")
 
 return naughty
 

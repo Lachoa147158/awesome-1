@@ -5,7 +5,7 @@ local text = [[An <b>important</b>
 <i>notification</i>
 ]]
 
-require("naughty").notify {
+require("naughty.notification") {
     title        = "Hello world!",
     text         = text,
     icon         = beautiful.icon,

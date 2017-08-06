@@ -17,7 +17,7 @@ local shapes = {
 }
 
 for _, s in ipairs(shapes) do
-    naughty.notify {
+    naughty.notification {
         title        = "Hello world!",
         text         = text,
         icon         = beautiful.icon,

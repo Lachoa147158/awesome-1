@@ -4,9 +4,6 @@
 -- This class creates individual notification objects that can be manipulated
 -- to extend the default behavior.
 --
--- Notifications should not be created directly but rather by calling
--- `naughty.notify`.
---
 -- This class doesn't define the actual widget, but is rather intended as a data
 -- object to hold the properties. All examples assume the default widgets, but
 -- the whole implementation can be replaced.
@@ -22,6 +19,7 @@ local gobject = require("gears.object")
 local gtable  = require("gears.table")
 local timer   = require("gears.timer")
 local cst     = require("naughty.constants")
+local naughty = require("naughty.core")
 
 local notification = {}
 
@@ -307,13 +305,65 @@ for _, prop in ipairs(properties) do
 
 end
 
--- This is a private API, please use the `naughty.notify` factory to generate
--- those objects.
---TODO v5 deprecate `naughty.notify` and allow direct creation
-function notification._create(args)
+--- Create a notification.
+--
+-- @tab args The argument table containing any of the arguments below.
+-- @string[opt=""] args.text Text of the notification.
+-- @string[opt] args.title Title of the notification.
+-- @int[opt=5] args.timeout Time in seconds after which popup expires.
+--   Set 0 for no timeout.
+-- @int[opt] args.hover_timeout Delay in seconds after which hovered popup disappears.
+-- @tparam[opt=focused] integer|screen args.screen Target screen for the notification.
+-- @string[opt="top_right"] args.position Corner of the workarea displaying the popups.
+--   Values: `"top_right"`, `"top_left"`, `"bottom_left"`,
+--   `"bottom_right"`, `"top_middle"`, `"bottom_middle"`.
+-- @bool[opt=true] args.ontop Boolean forcing popups to display on top.
+-- @int[opt=`beautiful.notification_height` or auto] args.height Popup height.
+-- @int[opt=`beautiful.notification_width` or auto] args.width Popup width.
+-- @string[opt=`beautiful.notification_font` or `beautiful.font` or `awesome.font`] args.font Notification font.
+-- @string[opt] args.icon Path to icon.
+-- @int[opt] args.icon_size Desired icon size in px.
+-- @string[opt=`beautiful.notification_fg` or `beautiful.fg_focus` or `'#ffffff'`] args.fg Foreground color.
+-- @string[opt=`beautiful.notification_fg` or `beautiful.bg_focus` or `'#535d6c'`] args.bg Background color.
+-- @int[opt=`beautiful.notification_border_width` or 1] args.border_width Border width.
+-- @string[opt=`beautiful.notification_border_color` or `beautiful.border_focus` or `'#535d6c'`] args.border_color Border color.
+-- @tparam[opt=`beautiful.notification_shape`] gears.shape args.shape Widget shape.
+-- @tparam[opt=`beautiful.notification_opacity`] gears.opacity args.opacity Widget opacity.
+-- @tparam[opt=`beautiful.notification_margin`] gears.margin args.margin Widget margin.
+-- @tparam[opt] func args.run Function to run on left click.  The notification
+--   object will be passed to it as an argument.
+--   You need to call e.g.
+--   `notification.die(naughty.notification_closed_reason.dismissedByUser)` from
+--   there to dismiss the notification yourself.
+-- @tparam[opt] func args.destroy Function to run when notification is destroyed.
+-- @tparam[opt] table args.preset Table with any of the above parameters.
+--   Note: Any parameters specified directly in args will override ones defined
+--   in the preset.
+-- @tparam[opt] int args.replaces_id Replace the notification with the given ID.
+-- @tparam[opt] func args.callback Function that will be called with all arguments.
+--   The notification will only be displayed if the function returns true.
+--   Note: this function is only relevant to notifications sent via dbus.
+-- @tparam[opt] table args.actions Mapping that maps a string to a callback when this
+--   action is selected.
+-- @bool[opt=false] args.ignore_suspend If set to true this notification
+--   will be shown even if notifications are suspended via `naughty.suspend`.
+-- @usage naughty.notify({ title = "Achtung!", text = "You're idling", timeout = 0 })
+-- @treturn ?table The notification object, or nil in case a notification was
+--   not displayed.
+-- @function naughty.notification
+local function create(args)
+    if cst.config.notify_callback then
+        args = cst.config.notify_callback(args)
+        if not args then return end
+    end
+
     local n = gobject {
         enable_properties = true,
     }
+
+    assert(naughty.emit_signal)
+    -- Make sure all signals bubble up
+    n:_connect_everything(naughty.emit_signal)
 
     -- Avoid modifying the original table
     local private = {}
@@ -326,7 +376,25 @@ function notification._create(args)
 
     gtable.crush(n, notification, true)
 
+    -- Allow extensions to create override the preset with custom data
+    naughty.emit_signal("request::preset", n, args)
+
+    -- gather variables together
+    rawset(n, "preset", gtable.join(
+        cst.config.defaults or {},
+        args.preset or cst.config.presets.normal or {},
+        rawget(n, "preset") or {}
+    ))
+
+    -- Register the notification before requesting a widget
+    n:emit_signal("new", args)
+
+    -- Let all listeners handle the actual visual aspects
+    if (not n.ignore) and (not n.preset.ignore) then
+        naughty.emit_signal("request::display", n, args)
+    end
+
     return n
 end
 
-return notification
+return setmetatable(notification, {__call = function(_, ...) return create(...) end})
