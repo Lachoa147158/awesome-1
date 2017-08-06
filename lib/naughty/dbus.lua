@@ -29,6 +29,7 @@ local naughty = require("naughty.core")
 local dbus = { config = {} }
 
 -- DBUS Notification constants
+-- https://developer.gnome.org/notification-spec/#urgency-levels
 local urgency = {
     low = "\0",
     normal = "\1",
@@ -144,12 +145,12 @@ capi.dbus.connect_signal("org.freedesktop.Notifications",
                     if action_id == "default" then
                         args.run = function()
                             sendActionInvoked(notification.id, "default")
-                            naughty.destroy(notification, naughty.notificationClosedReason.dismissedByUser)
+                            naughty.destroy(notification, naughty.notification_closed_reason.dismissed_by_user)
                         end
                     elseif action_id ~= nil and action_text ~= nil then
                         args.actions[action_text] = function()
                             sendActionInvoked(notification.id, action_id)
-                            naughty.destroy(notification, naughty.notificationClosedReason.dismissedByUser)
+                            naughty.destroy(notification, naughty.notification_closed_reason.dismissed_by_user)
                         end
                     end
                 end
@@ -189,7 +190,7 @@ capi.dbus.connect_signal("org.freedesktop.Notifications",
         elseif data.member == "CloseNotification" then
             local obj = naughty.getById(appname)
             if obj then
-            naughty.destroy(obj, naughty.notificationClosedReason.dismissedByCommand)
+            naughty.destroy(obj, naughty.notification_closed_reason.dismissed_by_command)
             end
         elseif data.member == "GetServerInfo" or data.member == "GetServerInformation" then
             -- name of notification app, name of vender, version, specification version

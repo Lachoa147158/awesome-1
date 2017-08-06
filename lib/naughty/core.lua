@@ -21,42 +21,36 @@ local dpi = beautiful.xresources.apply_dpi
 
 local naughty = {}
 
---[[--
-Naughty configuration - a table containing common popup settings.
-
-@table naughty.config
-@tfield[opt=apply_dpi(4)] int padding Space between popups and edge of the
-  workarea.
-@tfield[opt=apply_dpi(1)] int spacing Spacing between popups.
-@tfield[opt={"/usr/share/pixmaps/"}] table icon_dirs List of directories
-  that will be checked by `getIcon()`.
-@tfield[opt={ "png", "gif" }] table icon_formats List of formats that will be
-  checked by `getIcon()`.
-@tfield[opt] function notify_callback Callback used to modify or reject
-notifications, e.g.
-    naughty.config.notify_callback = function(args)
-        args.text = 'prefix: ' .. args.text
-        return args
-    end
-  To reject a notification return `nil` from the callback.
-  If the notification is a freedesktop notification received via DBUS, you can
-  access the freedesktop hints via `args.freedesktop_hints` if any where
-  specified.
-
-@tfield table presets Notification presets.  See `config.presets`.
-
-@tfield table defaults Default values for the params to `notify()`.  These can
-  optionally be overridden by specifying a preset.  See `config.defaults`.
-
---]]
+--- Naughty configuration - a table containing common popup settings.
 --
-naughty.config = {
-    padding = dpi(4),
-    spacing = dpi(1),
-    icon_dirs = { "/usr/share/pixmaps/", },
-    icon_formats = { "png", "gif" },
-    notify_callback = nil,
-}
+-- @table naughty.config
+-- @tfield[opt=apply_dpi(4)] int padding Space between popups and edge of the
+--   workarea.
+-- @tfield[opt=apply_dpi(1)] int spacing Spacing between popups.
+-- @tfield[opt={"/usr/share/pixmaps/"}] table icon_dirs List of directories
+--   that will be checked by `getIcon()`.
+-- @tfield[opt={ "png", "gif" }] table icon_formats List of formats that will be
+--   checked by `getIcon()`.
+-- @tfield[opt] function notify_callback Callback used to modify or reject
+-- notifications, e.g.
+--     naughty.config.notify_callback = function(args)
+--         args.text = 'prefix: ' .. args.text
+--         return args
+--     end
+--   To reject a notification return `nil` from the callback.
+--   If the notification is a freedesktop notification received via DBUS, you can
+--   access the freedesktop hints via `args.freedesktop_hints` if any where
+--   specified.
+--
+-- @tfield table presets Notification presets.  See `config.presets`.
+--
+-- @tfield table defaults Default values for the params to `notify()`.  These can
+--   optionally be overridden by specifying a preset.  See `config.defaults`.
+
+-- It's done that way to preserve compatibility with Awesome 4.0 while allowing
+-- the naughty submodules to use the contants without creating a circular
+-- dependency.
+gtable.crush(naughty, require("naughty.constants"))
 
 --- Notification presets for `naughty.notify`.
 -- This holds presets for different purposes.  A preset is a table of any
@@ -79,32 +73,6 @@ naughty.config = {
 -- @tfield[opt="#ff0000"] string critical.bg
 -- @tfield[opt="#ffffff"] string critical.fg
 -- @tfield[opt=0] string critical.timeout
-naughty.config.presets = {
-    low = {
-        timeout = 5
-    },
-    normal = {},
-    critical = {
-        bg = "#ff0000",
-        fg = "#ffffff",
-        timeout = 0,
-    },
-    ok = {
-        bg = "#00bb00",
-        fg = "#ffffff",
-        timeout = 5,
-    },
-    info = {
-        bg = "#0000ff",
-        fg = "#ffffff",
-        timeout = 5,
-    },
-    warn = {
-        bg = "#ffaa00",
-        fg = "#000000",
-        timeout = 10,
-    },
-}
 
 --- Defaults for `naughty.notify`.
 --
@@ -116,24 +84,16 @@ naughty.config.presets = {
 -- @tfield[opt=apply_dpi(5)] int margin
 -- @tfield[opt=apply_dpi(1)] int border_width
 -- @tfield[opt="top_right"] string position
-naughty.config.defaults = {
-    timeout = 5,
-    text = "",
-    screen = nil,
-    ontop = true,
-    margin = dpi(5),
-    border_width = dpi(1),
-    position = "top_right"
-}
 
-naughty.notificationClosedReason = {
-    silent = -1,
-    expired = 1,
-    dismissedByUser = 2,
-    dismissedByCommand = 3,
-    undefined = 4
-}
-
+--- The reason why a notification is to be closed.
+-- See [the specification](https://developer.gnome.org/notification-spec/#signals)
+-- for more details.
+-- @tfield number silent
+-- @tfield number expired
+-- @tfield number dismissed_by_user
+-- @tfield number dismissed_by_command
+-- @tfield number undefined
+-- @table notification_closed_reason
 
 --- Notifications font.
 -- @beautiful beautiful.notification_font
@@ -182,6 +142,8 @@ naughty.notificationClosedReason = {
 
 -- True if notifying is suspended
 local suspended = false
+
+--TODO v5 Deprecate the public `naughty.notifications` (to make it private)
 
 --- Index of notifications per screen and position.
 -- See config table for valid 'position' values.
@@ -270,11 +232,13 @@ end
 function naughty.resume()
     suspended = false
     for _, v in pairs(naughty.notifications.suspended) do
-        v.box.visible = true
+        v:emit_signal("request::display")
         if v.timer then v.timer:start() end
     end
     naughty.notifications.suspended = { }
 end
+
+--TODO v5 replace toggle/resume/suspend/is_suspended by a single property
 
 --- Toggle notification state
 function naughty.toggle()
@@ -287,10 +251,14 @@ end
 
 --- Destroy notification by notification object
 --
+-- This function is deprecated in favor of
+-- `notification:destroy(reason, keep_visible)`.
+--
 -- @param notification Notification object to be destroyed
--- @param reason One of the reasons from notificationClosedReason
+-- @param reason One of the reasons from `notification_closed_reason`
 -- @param[opt=false] keep_visible If true, keep the notification visible
 -- @return True if the popup was successfully destroyed, nil otherwise
+-- @deprecated naughty.destroy
 function naughty.destroy(notification, reason, keep_visible)
     gdebug.deprecate("Use notification:destroy(reason, keep_visible)", {deprecated_in=5})
     return notification:destroy(reason, keep_visible)
@@ -300,10 +268,11 @@ end
 --
 -- @tparam table screens Table of screens on which notifications should be
 -- destroyed. If nil, destroy notifications on all screens.
--- @tparam naughty.notificationClosedReason reason Reason for closing
+-- @tparam naughty.notification_closed_reason reason Reason for closing
 -- notifications.
 -- @treturn true|nil True if all notifications were successfully destroyed, nil
 -- otherwise.
+-- @see notification_closed_reason
 function naughty.destroy_all_notifications(screens, reason)
     if not screens then
         screens = {}
@@ -326,6 +295,7 @@ end
 --
 -- @param id ID of the notification
 -- @return notification object if it was found, nil otherwise
+-- @deprecated naughty.getById
 function naughty.getById(id)
     gdebug.deprecate("Use naughty.get_by_id", {deprecated_in=5})
     return naughty.get_by_id(id)
@@ -349,18 +319,27 @@ function naughty.get_by_id(id)
 end
 
 --- Set new notification timeout.
+--
+-- This function is deprecated, use `notification:reset_timeout(new_timeout)`.
+--
 -- @tparam notification notification Notification object, which timer is to be reset.
 -- @tparam number new_timeout Time in seconds after which notification disappears.
+-- @deprecated naughty.reset_timeout
 function naughty.reset_timeout(notification, new_timeout)
     gdebug.deprecate("Use notification:reset_timeout(new_timeout)", {deprecated_in=5})
     notification:reset_timeout(new_timeout)
 end
 
 --- Replace title and text of an existing notification.
+--
+-- This function is deprecated, use `notification.text = new_text` and
+-- `notification.title = new_title`
+--
 -- @tparam notification notification Notification object, which contents are to be replaced.
 -- @tparam string new_title New title of notification. If not specified, old title remains unchanged.
 -- @tparam string new_text New text of notification. If not specified, old text remains unchanged.
 -- @return None.
+-- @deprecated naughty.replace_text
 function naughty.replace_text(notification, new_title, new_text)
     gdebug.deprecate(
         "Use notification.text = new_text; notification.title = new_title",
@@ -371,6 +350,41 @@ function naughty.replace_text(notification, new_title, new_text)
     notification.text  = new_text or notification.text
 
     update_size(notification)
+end
+
+-- Remove the notification from the internal list(s)
+local function cleanup(self)
+    if suspended then
+        for k, v in pairs(naughty.suspended) do
+            if v == self then
+                table.remove(naughty.suspended, k)
+                break
+            end
+        end
+    end
+    local scr = self.screen
+
+    assert(naughty.notifications[scr][self.position][self.idx] == self)
+    table.remove(naughty.notifications[scr][self.position], self.idx)
+
+    if self.timer then
+        self.timer:stop()
+    end
+
+    if self.destroy_cb and reason ~= naughty.notification_closed_reason.silent then
+        self.destroy_cb(reason or naughty.notification_closed_reason.undefined)
+    end
+end
+
+naughty.connect_signal("destroyed", cleanup)
+
+local function get_screen(s)
+    return s and capi.screen[s]
+end
+
+-- Proxy the global suspension state on all notification objects
+local function get_suspended(self)
+    return suspended and not self.ignore_suspend
 end
 
 --- Emitted when a notification is created.
@@ -429,7 +443,7 @@ end
 -- @tparam[opt] func args.run Function to run on left click.  The notification
 --   object will be passed to it as an argument.
 --   You need to call e.g.
---   `notification.die(naughty.notificationClosedReason.dismissedByUser)` from
+--   `notification.die(naughty.notification_closed_reason.dismissedByUser)` from
 --   there to dismiss the notification yourself.
 -- @tparam[opt] func args.destroy Function to run when notification is destroyed.
 -- @tparam[opt] table args.preset Table with any of the above parameters.
@@ -453,7 +467,10 @@ function naughty.notify(args)
     end
 
     -- Create the notification object
-    local notification = nnotif._create{}
+    local notification = nnotif._create(args)
+
+    -- Add the some more properties
+    rawset(notification, "get_suspended", get_suspended)
 
     -- Make sure all signals bubble up
     notification:_connect_everything(naughty.emit_signal)
@@ -462,11 +479,21 @@ function naughty.notify(args)
     naughty.emit_signal("request::preset", notification, args)
 
     -- gather variables together
-    notification.preset = gtable.join(
+    rawset(notification, "preset", gtable.join(
         naughty.config.defaults or {},
         args.preset or naughty.config.presets.normal or {},
-        notification.preset or {}
-    )
+        rawget(notification, "preset") or {}
+    ))
+
+    --TODO v5 uncouple the notifications and the screen
+    local s = get_screen(args.screen or notification.preset.screen or screen.focused())
+
+    -- insert the notification to the table
+    table.insert(naughty.notifications[s][notification.position], notification)
+
+    if suspended and not args.ignore_suspend then
+        table.insert(naughty.notifications.suspended, notification)
+    end
 
     -- Let all listeners handle the actual visual aspects
     if (not notification.ignore) and (not notification.preset.ignore) then
@@ -474,6 +501,8 @@ function naughty.notify(args)
     end
 
     naughty.emit_signal("added", notification, args)
+
+    assert(rawget(notification, "preset"))
 
     -- return the notification
     return notification

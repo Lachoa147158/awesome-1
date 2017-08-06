@@ -37,6 +37,25 @@ local function get_screen(s)
     return s and capi.screen[s]
 end
 
+-- This is a copy of the table found in `naughty.core`. The reason the copy
+-- exists is to make sure there is only unidirectional coupling between the
+-- legacy widget (this class) and `naughty.core`. Exposing the "raw"
+-- notification list is also a bad design and might cause indices and position
+-- corruption. While it cannot be removed from the public API (yet), it can at
+-- least be blacklisted internally.
+local current_notifications = {}
+
+screen.connect_for_each_screen(function(s)
+    current_notifications[s] = {
+        top_left = {},
+        top_middle = {},
+        top_right = {},
+        bottom_left = {},
+        bottom_middle = {},
+        bottom_right = {},
+    }
+end)
+
 -- Counter for the notifications
 -- Required for later access via DBUS
 local counter = 1
@@ -54,8 +73,8 @@ local function get_offset(s, position, idx, width, height)
     s = get_screen(s)
     local ws = s.workarea
     local v = {}
-    idx = idx or #naughty.notifications[s][position] + 1
-    width = width or naughty.notifications[s][position][idx].width
+    idx = idx or #current_notifications[s][position] + 1
+    width = width or current_notifications[s][position][idx].width
 
     -- calculate x
     if position:match("left") then
@@ -69,7 +88,7 @@ local function get_offset(s, position, idx, width, height)
     -- calculate existing popups' height
     local existing = 0
     for i = 1, idx-1, 1 do
-        existing = existing + naughty.notifications[s][position][i].height + naughty.config.spacing
+        existing = existing + current_notifications[s][position][i].height + naughty.config.spacing
     end
 
     -- calculate y
@@ -84,13 +103,13 @@ local function get_offset(s, position, idx, width, height)
     -- e.g. critical ones.
     local find_old_to_replace = function()
         for i = 1, idx-1 do
-            local n = naughty.notifications[s][position][i]
+            local n = current_notifications[s][position][i]
             if n.timeout > 0 then
                 return n
             end
         end
         -- Fallback to first one.
-        return naughty.notifications[s][position][1]
+        return current_notifications[s][position][1]
     end
 
     -- if positioned outside workarea, destroy oldest popup and recalculate
@@ -104,12 +123,50 @@ local function get_offset(s, position, idx, width, height)
     return v
 end
 
+local escape_pattern = "[<>&]"
+local escape_subs    = { ['<'] = "&lt;", ['>'] = "&gt;", ['&'] = "&amp;" }
+
+-- Cache the markup
+local function set_escaped_text(self)
+    local text, title = self.text or "", self.title or ""
+
+    if title then title = title .. "\n" else title = "" end
+
+    local textbox = self.textbox
+
+    local function set_markup(pattern, replacements)
+        return textbox:set_markup_silently(string.format('<b>%s</b>%s', title, text:gsub(pattern, replacements)))
+    end
+
+    local function set_text()
+        textbox:set_text(string.format('%s %s', title, text))
+    end
+
+    -- Since the title cannot contain markup, it must be escaped first so that
+    -- it is not interpreted by Pango later.
+    title = title:gsub(escape_pattern, escape_subs)
+    -- Try to set the text while only interpreting <br>.
+    if not set_markup("<br.->", "\n") then
+        -- That failed, escape everything which might cause an error from pango
+        if not set_markup(escape_pattern, escape_subs) then
+            -- Ok, just ignore all pango markup. If this fails, we got some invalid utf8
+            if not pcall(set_text) then
+                textbox:set_markup("<i>&lt;Invalid markup or UTF8, cannot display message&gt;</i>")
+            end
+        end
+    end
+end
+
+naughty.connect_signal("property::text" ,set_escaped_text)
+naughty.connect_signal("property::title",set_escaped_text)
+
+
 --- Re-arrange notifications according to their position and index - internal
 --
 -- @return None
 local function arrange(s)
-    for p in pairs(naughty.notifications[s]) do
-        for i,notification in pairs(naughty.notifications[s][p]) do
+    for p in pairs(current_notifications[s]) do
+        for i,notification in pairs(current_notifications[s][p]) do
             local offset = get_offset(s, p, i, notification.width, notification.height)
             notification.box:geometry({ x = offset.x, y = offset.y })
             notification.idx = offset.idx
@@ -174,6 +231,20 @@ local function update_size(notification)
     arrange(n.screen)
 end
 
+
+local function cleanup(self, reason, keep_visible)
+    local scr = self.screen
+    if (not keep_visible) or (not src) then
+        self.box.visible = false
+        arrange(scr)
+    end
+
+    assert(current_notifications[scr][self.position][self.idx] == self)
+    table.remove(current_notifications[scr][self.position], self.idx)
+end
+
+naughty.connect_signal("destroyed", cleanup)
+
 --- The default notification GUI handler.
 --
 -- To disable this handler, use:
@@ -190,7 +261,15 @@ end
 -- @tparam table args Any arguments passed to the `naughty.notify` function,
 --  including, but not limited to all `naughty.notification` properties.
 -- @signalhandler naughty.default_notification_handler
-function naughty.default_notification_handler(notification, args, sdf)
+function naughty.default_notification_handler(notification, args)
+
+    -- If request::display is called more than once, simply make sure the wibox
+    -- is visible.
+    if notification.box then
+        notification.box.visible = true
+        return
+    end
+
     local preset = notification.preset
     local text   = args.text or preset.text
     local title  = args.title or preset.title
@@ -244,7 +323,7 @@ function naughty.default_notification_handler(notification, args, sdf)
         local obj = naughty.get_by_id(args.replaces_id)
         if obj then
             -- destroy this and ...
-            naughty.destroy(obj, naughty.notificationClosedReason.silent, true)
+            naughty.destroy(obj, naughty.notification_closed_reason.silent, true)
             reuse_box = obj.box
         end
         -- ... may use its ID
@@ -262,8 +341,6 @@ function naughty.default_notification_handler(notification, args, sdf)
 
     notification.position = position
 
-    if title then title = title .. "\n" else title = "" end
-
     -- hook destroy
     notification.timeout = timeout
     local die = notification.die
@@ -272,17 +349,17 @@ function naughty.default_notification_handler(notification, args, sdf)
         if args.run then
             args.run(notification)
         else
-            die(naughty.notificationClosedReason.dismissedByUser)
+            die(naughty.notification_closed_reason.dismissed_by_user)
         end
     end
 
     local hover_destroy = function ()
         if hover_timeout == 0 then
-            die(naughty.notificationClosedReason.expired)
+            die(naughty.notification_closed_reason.expired)
         else
             if notification.timer then notification.timer:stop() end
             notification.timer = timer { timeout = hover_timeout }
-            notification.timer:connect_signal("timeout", function() die(naughty.notificationClosedReason.expired) end)
+            notification.timer:connect_signal("timeout", function() die(naughty.notification_closed_reason.expired) end)
             notification.timer:start()
         end
     end
@@ -296,9 +373,7 @@ function naughty.default_notification_handler(notification, args, sdf)
     textbox:set_font(font)
 
     notification.textbox = textbox
-
-    notification.title = title
-    notification.text  = text
+    set_escaped_text(notification)
 
     local actionslayout = wibox.layout.fixed.vertical()
     local actions_max_width = 0
@@ -417,18 +492,15 @@ function naughty.default_notification_handler(notification, args, sdf)
     -- Setup the mouse events
     layout:buttons(gtable.join(button({}, 1, nil, run),
                                    button({}, 3, nil, function()
-                                        die(naughty.notificationClosedReason.dismissedByUser)
+                                        die(naughty.notification_closed_reason.dismissed_by_user)
                                     end)))
 
     -- insert the notification to the table
-    table.insert(naughty.notifications[s][notification.position], notification)
+    table.insert(current_notifications[s][notification.position], notification)
 
     if suspended and not args.ignore_suspend then
         notification.box.visible = false
-        table.insert(naughty.notifications.suspended, notification)
     end
 end
 
 naughty.connect_signal("request::display", naughty.default_notification_handler)
-
-

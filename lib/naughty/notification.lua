@@ -21,10 +21,9 @@
 local gobject = require("gears.object")
 local gtable  = require("gears.table")
 local timer   = require("gears.timer")
+local cst     = require("naughty.constants")
 
 local notification = {}
-
-local defaults = {}
 
 --- Unique identifier of the notification.
 -- This is the equivalent to a PID as allows external applications to select
@@ -169,6 +168,12 @@ local defaults = {}
 -- @property ignore
 -- @param boolean
 
+--- Tell if the notification is currently suspended (read only).
+--
+-- This is always equal to `naughty.suspended`
+--@property suspended
+--@param boolean
+
 --- Emitted when the notification is destroyed.
 -- @signal destroyed
 
@@ -183,38 +188,13 @@ local defaults = {}
 
 --- Destroy notification by notification object
 --
--- @tparam string reason One of the reasons from notificationClosedReason
+-- @tparam string reason One of the reasons from `notification_closed_reason`
 -- @tparam[opt=false] boolean keep_visible If true, keep the notification visible
 -- @return True if the popup was successfully destroyed, nil otherwise
 function notification:destroy(reason, keep_visible)
-    if self.box.visible then
-        if suspended then
-            for k, v in pairs(naughty.notifications.suspended) do
-                if v.box == self.box then
-                    table.remove(naughty.notifications.suspended, k)
-                    break
-                end
-            end
-        end
-        local scr = self.screen
-        table.remove(naughty.notifications[scr][self.position], self.idx)
-        if self.timer then
-            self.timer:stop()
-        end
+    self:emit_signal("destroyed")
 
-        if not keep_visible then
-            self.box.visible = false
-            arrange(scr)
-        end
-
-        if self.destroy_cb and reason ~= naughty.notificationClosedReason.silent then
-            self.destroy_cb(reason or naughty.notificationClosedReason.undefined)
-        end
-
-        self:emit_signal("destroyed")
-
-        return true
-    end
+    return true
 end
 
 --- Set new notification timeout.
@@ -229,44 +209,6 @@ function notification:reset_timeout(new_timeout)
     self.timer:start()
 end
 
-local escape_pattern = "[<>&]"
-local escape_subs = { ['<'] = "&lt;", ['>'] = "&gt;", ['&'] = "&amp;" }
-
-local function set_escaped_text(self, title, text)
-    local textbox = self.textbox --FIXME
-
-    local function set_markup(pattern, replacements)
-        return textbox:set_markup_silently(string.format('<b>%s</b>%s', title, text:gsub(pattern, replacements)))
-    end
-    local function setText()
-        textbox:set_text(string.format('%s %s', title, text))
-    end
-
-    -- Since the title cannot contain markup, it must be escaped first so that
-    -- it is not interpreted by Pango later.
-    title = title:gsub(escape_pattern, escape_subs)
-    -- Try to set the text while only interpreting <br>.
-    if not set_markup("<br.->", "\n") then
-        -- That failed, escape everything which might cause an error from pango
-        if not set_markup(escape_pattern, escape_subs) then
-            -- Ok, just ignore all pango markup. If this fails, we got some invalid utf8
-            if not pcall(setText) then
-                textbox:set_markup("<i>&lt;Invalid markup or UTF8, cannot display message&gt;</i>")
-            end
-        end
-    end
-end
-
-function notification:set_text(new_text)
-    self._private.text = new_text
-    set_escaped_text(self, self._private.title or "", new_text)
-end
-
-function notification:set_title(new_title)
-    self._private.title = new_title
-    set_escaped_text(self, new_title, self._private.text or "")
-end
-
 function notification:set_id(new_id)
     assert(self._private.id == nil, "Notification identifier can only be set once")
     self._private.id = new_id
@@ -279,12 +221,16 @@ function notification:set_timeout(timeout)
     end
     if timeout > 0 then
         local timer_die = timer { timeout = timeout }
-        --FIXME naughty.notificationClosedReason.expired
-        --FIXME add disconnect
-        timer_die:connect_signal("timeout", function() die(naughty.notificationClosedReason.expired) end)
-        if not suspended then
+        timer_die:connect_signal("timeout", function() die(cst.notification_closed_reason.expired) end)
+        if not self.suspended then
             timer_die:start()
         end
+
+        -- Prevent a memory leak and the accumulation of active timers
+        if self.timer and self.timer.started then
+            self.timer:stop()
+        end
+
         self.timer = timer_die
     end
     self.die = die
@@ -303,7 +249,13 @@ local properties = {
 
 for _, prop in ipairs(properties) do
     notification["get_"..prop] = notification["get_"..prop] or function(self)
-        return self._private[prop] or (defaults[prop] and defaults[prop]())
+        -- It's possible this could be called from the `request::preset` handler.
+        -- `rawget()` is necessary to avoid a stack overflow.
+        local preset = rawget(self, "preset")
+
+        return self._private[prop]
+            or (preset and preset[prop])
+            or cst.config.defaults[prop]
     end
 
     notification["set_"..prop] = notification["set_"..prop] or function(self, value)

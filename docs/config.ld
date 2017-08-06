@@ -113,9 +113,12 @@ file = {
         '../lib/gears/init.lua',
         '../lib/wibox/layout/init.lua',
         '../lib/wibox/container/init.lua',
+        '../lib/naughty/constants.lua',
+        '../lib/naughty/dbus.lua',
 
         -- Ignore some parts of the widget library
         '../lib/awful/widget/init.lua',
+        '../lib/naughty/widget/init.lua',
     }
 }
 
