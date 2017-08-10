@@ -13,7 +13,7 @@ local args = loadfile(file_path)() or {}
 
 -- Emulate the event loop for 5 iterations
 for _ = 1, 5 do
-    require("gears.timer").run_delayed_calls_now()
+    awesome.emit_signal("refresh")
 end
 
 -- Draw the result
@@ -56,7 +56,7 @@ if not rawget(screen, "no_outline") then
     end
 end
 
-cr:set_line_width(beautiful.border_width/2)
+cr:set_line_width(beautiful.border_width)
 cr:set_source(color(beautiful.border_color))
 
 
@@ -132,7 +132,11 @@ local function client_widget(c, col, label)
 
     return wibox.widget {
         {
-            l,
+            {
+                l,
+                margins = bw + 1, -- +1 because the the SVG AA
+                layout  = wibox.container.margin
+            },
             {
                 text   = label or "",
                 align  = "center",
@@ -150,9 +154,7 @@ local function client_widget(c, col, label)
             return shape.rounded_rect(cr2, w, h, args.radius or 5)
         end,
 
-        forced_width  = geo.width  + 2*bw,
-        forced_height = geo.height + 2*bw,
-        widget        = wibox.container.background,
+        widget = wibox.container.background,
     }
 end
 
@@ -172,7 +174,7 @@ end
 
 -- Emulate the event loop for another 5 iterations
 for _ = 1, 5 do
-    require("gears.timer").run_delayed_calls_now()
+    awesome.emit_signal("refresh")
 end
 
 for _, d in ipairs(drawin.get()) do
