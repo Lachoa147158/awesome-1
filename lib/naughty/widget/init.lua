@@ -7,6 +7,7 @@
 return {
     legacy     = require( "naughty.widget.legacy"     );
     actionlist = require( "naughty.widget.actionlist" );
-    title      = require( "naughty.widget.title"      );=
+    title      = require( "naughty.widget.title"      );
+    message    = require( "naughty.widget.message"    );
     box        = require( "naughty.widget.box"        );
 }
