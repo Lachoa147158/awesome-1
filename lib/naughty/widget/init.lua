@@ -9,5 +9,6 @@ return {
     actionlist = require( "naughty.widget.actionlist" );
     title      = require( "naughty.widget.title"      );
     message    = require( "naughty.widget.message"    );
+    icon       = require( "naughty.widget.icon"       );
     box        = require( "naughty.widget.box"        );
 }
