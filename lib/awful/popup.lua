@@ -47,6 +47,8 @@ local function set_position(self)
         return
     end
 
+    if not self.auto_place then return end
+
     local geo = rawget(self, "widget_geo")
 
     local preferred_positions = rawget(self, "_preferred_directions") or {
@@ -84,8 +86,8 @@ function main_widget:layout(context, width, height)
         glib.idle_add(glib.PRIORITY_HIGH_IDLE, function()
 
             local prev_geo = self._wb:geometry()
-            self._wb.width  = math.ceil(w or 1)
-            self._wb.height = math.ceil(h or 1)
+            self._wb.width  = math.max(1, math.ceil(w or 1))
+            self._wb.height = math.max(1, math.ceil(h or 1))
 
             if self._wb.width ~= prev_geo.width and self._wb.height ~= prev_geo.height then
                 set_position(self._wb)
@@ -150,6 +152,15 @@ function popup:move_by_mouse()
     --TODO
 end
 
+function popup:set_auto_palce(value)
+    self._private.autoplace = value
+    set_position(self)
+end
+
+function popup:get_auto_place()
+    return self._private.autoplace or false
+end
+
 --- The distance between the popup and its parent (if any).
 -- @property offset
 -- @tparam table|number offset An integer value or a `{x=, y=}` table.
@@ -204,13 +215,37 @@ end
 
 -- For the tests
 function popup:_apply_size_now()
+    if not self.widget then return end
+
     local w, h = wibox.widget.base.fit_widget(self.widget, {dpi=96}, self.widget, 9999, 9999)
 
     local prev_geo = self:geometry()
-    self.width  = math.ceil(w or 1)
-    self.height = math.ceil(h or 1)
+    self.width  = math.max(1, math.ceil(w or 1))
+    self.height = math.max(1, math.ceil(h or 1))
 
     set_position(self)
+end
+
+local function init_widget(self, wdg)
+    -- Empty popup are forbidden since it would be 0x0
+    assert(wdg)
+
+    -- Add some syntax sugar and allow widget inline declarations or
+    -- constructors
+    wdg = wibox.widget.base.make_widget_from_value(wdg)
+
+    self._private.widget = wdg
+
+    self._private.container:set_widget(wdg)
+end
+
+function popup:set_widget(wid)
+    self._private.widget = wid
+    self._private.container:set_widget(wid)
+end
+
+function popup:get_widget()
+    return self._private.widget
 end
 
 --- A brilliant idea to totally turn the whole hierarchy on its head
@@ -220,49 +255,34 @@ end
 local function create_auto_resize_widget(_, args)
     assert(args)
 
-    local wdg = args.widget
-
-    -- Empty popup are forbidden since it would be 0x0
-    assert(wdg)
-
-    -- Add some syntax sugar and allow widget inline declarations or
-    -- constructors
-    if type(wdg) == "function" or (type(layout) == "table"
-      and getmetatable(layout)
-      and getmetatable(layout).__call) then
-        wdg = wdg()
-    elseif type(wdg) == "table" and not wdg.is_widget then
-        wdg = wibox.widget(wdg)
-    end
-
     -- Temporarily remove the widget
     local original_widget = args.widget
     args.widget = nil
 
-    -- Empty popup are forbidden since it would be 0x0
-    assert(wdg)
 
     local ii = wibox.widget.base.make_widget()
 
     util.table.crush(ii, main_widget)
 
-    ii:set_widget(wdg)
-
     -- Create a wibox to host the widget
     local w = wibox(args or {})
 
+    rawset(w, "_private", {
+        container = ii
+    })
+
     util.table.crush(w, popup)
+
+    if original_widget then
+        init_widget(w, original_widget)
+    end
 
     -- Restore
     args.widget = original_widget
 
     -- Cross-link the wibox and widget
     ii._wb = w
-    w:set_widget(ii)
-    rawset(w, "widget", wdg) --FIXME don't
-
-    -- Changing the widget is not supported
-    rawset(w, "set_widget", function()end) --FIXME don't
+    wibox.set_widget(w, ii)
 
     if args and args.preferred_positions then
         if type(args.preferred_positions) == "table" then
