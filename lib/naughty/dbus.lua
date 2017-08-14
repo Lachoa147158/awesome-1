@@ -110,7 +110,7 @@ end
 
 capi.dbus.connect_signal("org.freedesktop.Notifications",
     function (data, appname, replaces_id, icon, title, text, actions, hints, expire)
-        local args = { }
+        local args = { }g
         if data.member == "Notify" then
             if text ~= "" then
                 args.message = text
@@ -185,7 +185,18 @@ capi.dbus.connect_signal("org.freedesktop.Notifications",
                     args.timeout = expire / 1000
                 end
                 args.freedesktop_hints = hints
-                notification = nnotif(args)
+
+                -- Try to update existing objects when possible
+                notification = naughty.get_by_id(replaces_id)
+
+                if notification then
+                    for k, v in pairs(args) do
+                        notification[k] = v
+                    end
+                else
+                    notification = nnotif(args)
+                end
+
                 return "u", notification.id
             end
             return "u", "0"
