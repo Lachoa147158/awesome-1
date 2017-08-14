@@ -110,7 +110,7 @@ end
 
 capi.dbus.connect_signal("org.freedesktop.Notifications",
     function (data, appname, replaces_id, icon, title, text, actions, hints, expire)
-        local args = { }g
+        local args = { }
         if data.member == "Notify" then
             if text ~= "" then
                 args.message = text
