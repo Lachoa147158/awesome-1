@@ -325,6 +325,7 @@ int luaA_default_index(lua_State *);
 int luaA_default_newindex(lua_State *);
 void luaA_emit_startup(void);
 
+
 void luaA_systray_invalidate(void);
 
 #endif
