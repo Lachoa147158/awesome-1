@@ -90,9 +90,6 @@ local conversion = nil
 --BEGIN one day create a proper API to add and remove keybindings at runtime.
 -- Doing it this way is horrible.
 
--- This list of keybindings to add in the next event loop cycle.
-local delay_list = {}
-
 -- Read the modifiers name and map their keysyms to the modkeys
 local function generate_conversion_map()
     if conversion then return conversion end
@@ -119,60 +116,31 @@ local function add_root_keybindings(self, list)
         list, "`add_root_keybindings` needs to be called with a list of keybindings"
     )
 
-    local was_started = #delay_list > 0
+    for _, kb in ipairs(list) do
+        local mods, key, press, release, data = unpack(kb)
 
-    -- When multiple `awful.keygrabber` objects are created in `rc.lua`, avoid
-    -- unpacking and repacking all keys for each instance and instead merge
-    -- everything into one operation. In not so extreme cases, not doing so
-    -- would slow down `awesome.restart()` by a small, but noticeable amount
-    -- of time.
-    table.insert(delay_list, {self, list})
+        if type(release) == 'table' then
+            data = release
+            release = nil
+        end
 
-    -- As of Awesome v4.3, `root.keys()` is an all or nothing API and there
-    -- isn't a standard mechanism to add and remove keybindings at runtime
-    -- without replacing the full list. Given `rc.lua` sets this list, not
-    -- using a delayed call would cause all `awful.keygrabber` created above
-    -- `root.keys(globalkeys)` to be silently overwritten. --FIXME v5
-    if not was_started then
-        gtimer.delayed_call(function()
-            local ret = {}
-
-            for _, obj in ipairs(delay_list) do
-                local obj_self, obj_list = obj[1], obj[2]
-
-                for _, v in ipairs(obj_list) do
-                    local mods, key, press, release, data = unpack(v)
-
-                    if type(release) == 'table' then
-                        data = release
-                        release = nil
-                    end
-
-                    if press then
-                        local old_press = press
-                        press = function(...)
-                            obj_self:start()
-                            old_press(...)
-                        end
-                    end
-
-                    if release then
-                        local old_release = release
-                        release = function(...)
-                            obj_self:start()
-                            old_release(...)
-                        end
-                    end
-
-                    table.insert(ret, akey(mods, key, press, release, data))
-                end
+        if press then
+            local old_press = press
+            press = function(...)
+                self:start()
+                old_press(...)
             end
+        end
 
-            -- Wow...
-            capi.root.keys(gtable.join( capi.root.keys(), unpack(ret) ))
+        if release then
+            local old_release = release
+            release = function(...)
+                self:start()
+                old_release(...)
+            end
+        end
 
-            delay_list = {}
-        end)
+        capi.root.add_key(akey(mods, key, press, release, data))
     end
 end
 
