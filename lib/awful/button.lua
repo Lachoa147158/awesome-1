@@ -2,7 +2,8 @@
 --- Create easily new buttons objects ignoring certain modifiers.
 --
 -- @author Julien Danjou &lt;julien@danjou.info&gt;
--- @copyright 2009 Julien Danjou
+-- @author Emmanuel Lepage Vallee &lt;elv1313@gmail.com&gt;
+-- @copyright 2018 Emmanuel Lepage Vallee
 -- @classmod awful.button
 ---------------------------------------------------------------------------
 
@@ -15,6 +16,13 @@ local gtable = require("gears.table")
 
 local button = { mt = {} }
 
+-- Due to non trivial abuse or `pairs` in older code, the private data cannot
+-- be stored in the object itself without creating subtle bugs. This cannot be
+-- fixed internally because the default `rc.lua` uses `gears.table.join`, which
+-- is affected.
+--TODO v6: Drop this
+local reverse_map = setmetatable({}, {__mode="k"})
+
 --- Modifiers to ignore.
 --
 -- By default this is initialized as `{ "Lock", "Mod2" }`
@@ -23,6 +31,105 @@ local button = { mt = {} }
 --
 -- @table ignore_modifiers
 local ignore_modifiers = { "Lock", "Mod2" }
+
+--- The mouse buttons names.
+--
+-- It can be used instead of the button ids.
+--
+-- @table names
+button.names = {
+    LEFT        = 1,-- The left mouse button.
+    MIDDLE      = 2,-- The scrollwheel button.
+    RIGHT       = 3,-- The context menu button.
+    SCROLL_UP   = 4,-- A scroll up increment.
+    SCROLL_DOWN = 5,-- A scroll down increment.
+}
+
+--- The table of modifier keys.
+--
+-- A modifier, such as `Control` are a predetermined set of keys that can be
+-- used to implement keybindings. Note that this list is fix and cannot be
+-- extended using random key names, code or characters.
+--
+-- Common modifiers are:
+--
+-- <table class='widget_list' border=1>
+--  <tr style='font-weight: bold;'>
+--   <th align='center'>Name</th>
+--   <th align='center'>Description</th>
+--  </tr>
+--  <tr><td>Mod1</td><td>Usually called Alt on PCs and Option on Macs</td></tr>
+--  <tr><td>Mod4</td><td>Also called Super, Windows and Command ⌘</td></tr>
+--  <tr><td>Mod5</td><td>Also called AltGr or ISO Level 3</td></tr>
+--  <tr><td>Shift</td><td>Both left and right shift keys</td></tr>
+--  <tr><td>Control</td><td>Also called CTRL on some keyboards</td></tr>
+-- </table>
+--
+-- Please note that Awesome ignores the status of "Lock" and "Mod2" (Num Lock).
+--
+-- @property modifiers
+
+--- The mouse button identifier.
+--
+-- ![Mouse buttons](../images/mouse.svg)
+--
+-- @property button
+-- @param integer
+
+--- Execute this mousebinding.
+-- @function button:trigger
+
+function button:set_button(b)
+    for _, v in ipairs(self) do
+        v.button = b
+    end
+end
+
+function button:get_button()
+    return self[1].button
+end
+
+function button:trigger()
+    local data = reverse_map[self]
+    if data.press then
+        data.press()
+    end
+
+    if data.release then
+        data.release()
+    end
+end
+
+local function index_handler(self, k)
+    if button["get_"..k] then
+        return button["get_"..k](self)
+    end
+
+    if type(button[k]) == "function" then
+        return button[k]
+    end
+
+    local data = reverse_map[self]
+    assert(data)
+
+    return data[k]
+end
+
+local function newindex_handler(self, key, value)
+    if button["set_"..key] then
+        return button["set_"..key](self, value)
+    end
+
+    local data = reverse_map[self]
+    assert(data)
+
+    data[key] = value
+end
+
+local obj_mt = {
+    __index    = index_handler,
+    __newindex = newindex_handler
+}
 
 --- Create a new button to use as binding.
 --
@@ -35,6 +142,7 @@ local ignore_modifiers = { "Lock", "Mod2" }
 -- will return 2 button objects: one with CapsLock on, and the other one with
 -- CapsLock off.
 --
+-- @function awful.button
 -- @treturn table A table with one or several button objects.
 function button.new(mod, _button, press, release)
     local ret = {}
@@ -49,7 +157,10 @@ function button.new(mod, _button, press, release)
             ret[#ret]:connect_signal("release", function (_, ...) release(...) end)
         end
     end
-    return ret
+
+    reverse_map[ret] = {_is_capi_button = false}
+
+    return setmetatable(ret, obj_mt)
 end
 
 function button.mt:__call(...)
