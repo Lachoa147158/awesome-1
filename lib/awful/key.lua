@@ -2,7 +2,8 @@
 --- Create easily new key objects ignoring certain modifiers.
 --
 -- @author Julien Danjou &lt;julien@danjou.info&gt;
--- @copyright 2009 Julien Danjou
+-- @author Emmanuel Lepage Vallee &lt;elv1313@gmail.com&gt;
+-- @copyright 2018 Emmanuel Lepage Vallee
 -- @classmod awful.key
 ---------------------------------------------------------------------------
 
@@ -13,10 +14,113 @@ local capi = { key = key, root = root, awesome = awesome }
 local gmath = require("gears.math")
 local gtable = require("gears.table")
 
+--- The keyboard key used to trigger this keybinding.
+--
+-- It can be the key symbol, such as `space`, the character, such as ` ` or the
+-- keycode such as `#65`.
+--
+-- @property key
+-- @param string
+
+--- The table of modifier keys.
+--
+-- A modifier, such as `Control` are a predetermined set of keys that can be
+-- used to implement keybindings. Note that this list is fix and cannot be
+-- extended using random key names, code or characters.
+--
+-- Common modifiers are:
+--
+-- <table class='widget_list' border=1>
+--  <tr style='font-weight: bold;'>
+--   <th align='center'>Name</th>
+--   <th align='center'>Description</th>
+--  </tr>
+--  <tr><td>Mod1</td><td>Usually called Alt on PCs and Option on Macs</td></tr>
+--  <tr><td>Mod4</td><td>Also called Super, Windows and Command ⌘</td></tr>
+--  <tr><td>Mod5</td><td>Also called AltGr or ISO Level 3</td></tr>
+--  <tr><td>Shift</td><td>Both left and right shift keys</td></tr>
+--  <tr><td>Control</td><td>Also called CTRL on some keyboards</td></tr>
+-- </table>
+--
+-- Please note that Awesome ignores the status of "Lock" and "Mod2" (Num Lock).
+--
+-- @property modifiers
+-- @tparam table modifiers
+
 local key = { mt = {}, hotkeys = {} }
 
+-- Due to non trivial abuse or `pairs` in older code, the private data cannot
+-- be stored in the object itself without creating subtle bugs. This cannot be
+-- fixed internally because the default `rc.lua` uses `gears.table.join`, which
+-- is affected.
+--TODO v6: Drop this
+local reverse_map = setmetatable({}, {__mode="k"})
+
+function key:set_key(k)
+    for _, v in ipairs(self) do
+        v.key = k
+    end
+end
+
+function key:get_key()
+    return self[1].key
+end
+
+function key:set_modifiers(mod)
+    local subsets = gmath.subsets(key.ignore_modifiers)
+    for k, set in ipairs(subsets) do
+        self[k].modifiers = gtable.join(mod, set)
+    end
+end
+
+--- Execute this keybinding.
+--
+-- @method :trigger
+
+function key:trigger()
+    local data = reverse_map[self]
+    if data.press then
+        data.press()
+    end
+
+    if data.release then
+        data.release()
+    end
+end
+
+local function index_handler(self, k)
+    if key["get_"..k] then
+        return key["get_"..k](self)
+    end
+
+    if type(key[k]) == "function" then
+        return key[k](self)
+    end
+
+    local data = reverse_map[self]
+    assert(data)
+
+    return data[k]
+end
+
+local function newindex_handler(self, k, value)
+    if key["set_"..k] then
+        return key["set_"..k](self, value)
+    end
+
+    local data = reverse_map[self]
+    assert(data)
+
+    data[k] = value
+end
+
+local obj_mt = {
+    __index    = index_handler,
+    __newindex = newindex_handler
+}
+
 --- Modifiers to ignore.
--- By default this is initialized as { "Lock", "Mod2" }
+-- By default this is initialized as `{ "Lock", "Mod2" }`
 -- so the Caps Lock or Num Lock modifier are not taking into account by awesome
 -- when pressing keys.
 -- @name awful.key.ignore_modifiers
@@ -138,10 +242,18 @@ function key.new(mod, _key, press, release, data)
     data.key = _key
     data.press = press
     data.release = release
+    data._is_capi_key = false
     table.insert(key.hotkeys, data)
     data.execute = function(_) key.execute(mod, _key) end
 
-    return ret
+    -- Store the private data
+    reverse_map[ret] = data
+
+    --WARNING this object needs to expose only ordered keys for legacy reasons.
+    -- All other properties needs to be fully handled by the meta table and never
+    -- be stored directly in the object.
+
+    return setmetatable(ret, obj_mt)
 end
 
 --- Compare a key object with modifiers and key.
