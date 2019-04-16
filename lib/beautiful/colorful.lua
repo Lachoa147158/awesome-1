@@ -990,8 +990,10 @@ end
 
 --- Returns the inverse of a color.
 --
--- @return A new colorful object representing the inverted color, or nil if invalid
--- @usage local inverted_color = c:invert()
+--@DOC_beautiful_colorful_inverted_EXAMPLE@
+--
+-- @return A new colorful object representing the inverted color,
+--  or nil if invalid.
 function colorful:to_inverted()
     local red   = clamp(1 - self.red  , 0, 1) * 255
     local green = clamp(1 - self.green, 0, 1) * 255
@@ -1004,11 +1006,13 @@ end
 
 -- {{{ HSL-adjusting functions
 
---- Returns a color darkened by a specified amount..
+--- Returns a color darkened by a specified amount.
+--
+--@DOC_beautiful_colorful_darken_EXAMPLE@
 --
 -- @tparam number v A number [0,1] of how much to decrease Lightness
--- @return A new colorful object representing the darkened color, or nil if invalid
--- @usage local darker_color = c:darken(0.25)
+-- @return A new colorful object representing the darkened color,
+--  or nil if invalid.
 function colorful:to_darkened(v)
     local lightness = clamp(self.lightness - v, 0, 1)
 
@@ -1017,9 +1021,11 @@ end
 
 --- Returns a color lightened by a specified amount.
 --
+--@DOC_beautiful_colorful_lighten_EXAMPLE@
+--
 -- @tparam number v A number [0,1] of how much to increase Lightness
--- @return A new colorful object representing the lightened color, or nil if invalid
--- @usage local lighter_color = c:lighten(0.25)
+-- @return A new colorful object representing the lightened color,
+--  or nil if invalid
 function colorful:to_lightened(v)
     local lightness = clamp(self.lightness + v, 0, 1)
 
@@ -1028,9 +1034,11 @@ end
 
 --- Returns a color saturated by a specified amount.
 --
+--@DOC_beautiful_co lorful_saturate_EXAMPLE@
+--
 -- @tparam number v A number [0,1] of how much to increase Saturation
--- @return A new colorful object representing the saturated color, or nil if invalid
--- @usage local saturated_color = c:saturate(0.25)
+-- @return A new colorful object representing the saturated color,
+--  or nil if invalid.
 function colorful:to_saturated(v)
     local saturation = clamp(self.saturation + v, 0, 1)
 
@@ -1039,9 +1047,11 @@ end
 
 --- Returns a color desaturated by a specified amount.
 --
+--@DOC_beautiful_colorful_desaturate_EXAMPLE@
+--
 -- @tparam number v A number [0,1] of how much to decrease Saturation
--- @return A new colorful object representing the desaturated color, or nil if invalid
--- @usage local desaturated_color = c:desaturate(0.25)
+-- @return A new colorful object representing the desaturated color,
+--  or nil if invalid.
 function colorful:to_desaturated(v)
     local saturation = clamp(self.saturation - v, 0, 1)
 
@@ -1050,8 +1060,12 @@ end
 
 --- Returns the grayscale of a color.
 --
--- Reduces Saturation to 0
--- @return A new colorful object representing the grayscaled color, or nil if invalid
+--@DOC_beautiful_colorful_grayscale_EXAMPLE@
+--
+-- It reduces Saturation to 0.
+--
+-- @return A new colorful object representing the grayscaled color,
+--  or nil if invalid.
 -- @usage local grayscaled_color = c:grayscale()
 function colorful:to_grayscale()
     return colorful.from.hsla(self.hue, 0, self.lightness, self.alpha)
@@ -1063,7 +1077,9 @@ end
 
 --- Returns the complement of a color (+180deg hue).
 --
--- Adds 180 to Hue (hue will self-adjust to be within [0,360])
+--@DOC_beautiful_colorful_complement_EXAMPLE@
+--
+-- Adds 180 to Hue (hue will self-adjust to be within [0,360]).
 --
 -- @return A new colorful object representing the complementary color, or
 --  `nil` if invalid.
@@ -1292,14 +1308,14 @@ end
 
 -- }}} Color output functions
 
-color_mt.__index = color
+color_mt.__index    = colorful
 color_mt.__tostring = colorful.hex
 
 --- A colorful object.
 -- @type color
 colorful.color = color
 
-setmetatable(color, {
+setmetatable(colorful, {
     __call = function(_,...) return colorful.new(...) end,
 })
 
