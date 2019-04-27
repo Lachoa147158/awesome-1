@@ -198,7 +198,7 @@ end
 --
 -- Here is the property effect on a layout:
 --
---@DOC_awful_layout_dynamic_suit_tile_padding_EXAMPLE@
+--@DOC_dynamite_suit_tile_padding_EXAMPLE@
 --
 -- **Signal:**
 --
@@ -375,6 +375,7 @@ function screen.object.get_bounding_geometry(self, args)
             }
         )
     end
+
     return geo
 end
 

@@ -13,6 +13,11 @@ local client = client
 local aclient = require("awful.client")
 local timer = require("gears.timer")
 
+--TODO turn into an object
+-- policy for fllow_the_mouse
+-- policy for click
+-- policy to the various ways steal focus
+
 local function filter_sticky(c)
     return not c.sticky and aclient.focus.filter(c)
 end

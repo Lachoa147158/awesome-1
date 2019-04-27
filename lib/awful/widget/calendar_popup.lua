@@ -29,6 +29,7 @@ local setmetatable = setmetatable
 local string = string
 local gears = require("gears")
 local wibox = require("wibox")
+local popup = require("awful.popup")
 local base = require("wibox.widget.base")
 local ascreen = require("awful.screen")
 local abutton = require("awful.button")
@@ -308,7 +309,7 @@ end
 local function get_cal_wibox(caltype, args)
     args = args or {}
 
-    local ret = wibox{ ontop   = true,
+    local ret = popup { ontop   = true,
                        opacity = args.opacity or 1,
                        bg      = args.bg or gears.color.transparent
     }
