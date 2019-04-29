@@ -22,22 +22,30 @@ local align_fct = {
 }
 align_fct.top, align_fct.bottom = align_fct.left, align_fct.right
 
--- Layout this layout
-function place:layout(context, width, height)
-
-    if not self._private.widget then
-        return
-    end
-
+local function get_grown_size(self, context, width, height)
+    local priv, dpi = self._private, context.dpi
     local w, h = base.fit_widget(self, context, self._private.widget, width, height)
 
-    if self._private.content_fill_horizontal then
-        w = width
+    if priv.grow_horizontal then
+        priv.grow_hcache[dpi] = math.max(w, priv.grow_hcache[dpi] or -1)
     end
 
-    if self._private.content_fill_vertical then
-        h = height
+    if priv.grow_vertical then
+        priv.grow_vcache[dpi] = math.max(h, priv.grow_vcache[dpi] or -1)
     end
+
+    return w, h, priv.grow_hcache[dpi], priv.grow_vcache[dpi]
+end
+
+-- Layout this layout
+function place:layout(context, width, height)
+    if not self._private.widget then return end
+
+    local w, h = get_grown_size(self, context, width, height)
+    w = self._private.content_fill_horizontal and width  or w
+    h = self._private.content_fill_vertical   and height or h
+
+    assert(w and h)
 
     local valign = self._private.valign or "center"
     local halign = self._private.halign or "center"
@@ -49,22 +57,24 @@ end
 
 -- Fit this layout into the given area
 function place:fit(context, width, height)
-    if not self._private.widget then
-        return 0, 0
-    end
+    if not self._private.widget then return 0, 0 end
 
-    local w, h = base.fit_widget(self, context, self._private.widget, width, height)
+    local priv = self._private
+    local w, h, cw, ch = get_grown_size(self, context, width, height)
 
-    return (self._private.fill_horizontal or self._private.content_fill_horizontal)
-        and width or w,
-    (self._private.fill_vertical or self._private.content_fill_vertical)
-        and height or h
+    width  = (priv.fill_horizontal or priv.content_fill_horizontal) and width or cw or w
+    height = (priv.fill_vertical or priv.content_fill_vertical) and height or ch or h
+
+    assert(width and height)
+
+    return width, height
 end
 
 function place:set_widget(widget)
     if widget then
         base.check_widget(widget)
     end
+
     self._private.widget = widget
     self:emit_signal("widget::layout_changed")
 end
@@ -132,38 +142,91 @@ function place:set_halign(value)
 end
 
 --- Fill the vertical space.
+--
+--@DOC_beforeafter_container_place_fillvertical_EXAMPLE@
+--
 -- @property fill_vertical
 -- @param[opt=false] boolean
-
-function place:set_fill_vertical(value)
-    self._private.fill_vertical = value
-    self:emit_signal("widget::layout_changed")
-end
+-- @see fill_horizontal
+-- @see content_fill_horizontal
+-- @see content_fill_vertical
 
 --- Fill the horizontal space.
+--
+--@DOC_beforeafter_container_place_fillhorizontal_EXAMPLE@
+--
 -- @property fill_horizontal
 -- @param[opt=false] boolean
+-- @see fill_vertical
+-- @see content_fill_horizontal
+-- @see content_fill_vertical
 
-function place:set_fill_horizontal(value)
-    self._private.fill_horizontal = value
-    self:emit_signal("widget::layout_changed")
-end
+--- Grow the vertical space.
+--
+--@DOC_beforeafter_container_place_growvertical_EXAMPLE@
+--
+-- When set, this property will record the previous maximum height size of
+-- the content widget and use this as the minimum size of the container.  Note
+-- that this does nothing when `fill_vertical` or `content_fill_vertical` are
+-- set.
+--
+-- @property grow_vertical
+-- @param[opt=false] boolean
+-- @see fill_vertical
+-- @see content_fill_vertical
+-- @see grow_horizontal
+
+--- Grow the horizontal space.
+--
+--@DOC_beforeafter_container_place_growhorizontal_EXAMPLE@
+--
+-- When set, this property will record the previous maximum width size of
+-- the content widget and use this as the minimum size of the container. It
+-- allows, for example, to avoid `wibox.widget.textbox` with rapidly changing
+-- number of character, such as network traffic size, to shift the content
+-- of the layout every few seconds. Note that this does nothing when
+-- `fill_horizontal` or `content_fill_horizontal` are set.
+--
+-- @property grow_horizontal
+-- @param[opt=false] boolean
+-- @see fill_horizontal
+-- @see content_fill_horizontal
+-- @see grow_vertical
 
 --- Stretch the contained widget so it takes all the vertical space.
+--
+--@DOC_beforeafter_container_place_fillcontentvertical_EXAMPLE@
+--
 -- @property content_fill_vertical
 -- @param[opt=false] boolean
-
-function place:set_content_fill_vertical(value)
-    self._private.content_fill_vertical = value
-    self:emit_signal("widget::layout_changed")
-end
+-- @see fill_vertical
+-- @see content_fill_horizontal
+-- @see fill_horizontal
 
 --- Stretch the contained widget so it takes all the horizontal space.
+--
+--@DOC_beforeafter_container_place_fillcontenthorizontal_EXAMPLE@
+--
 -- @property content_fill_horizontal
 -- @param[opt=false] boolean
+-- @see fill_vertical
+-- @see fill_horizontal
+-- @see content_fill_vertical
 
-function place:set_content_fill_horizontal(value)
-    self._private.content_fill_horizontal = value
+for _, prop in ipairs { "fill_vertical"  , "fill_horizontal", "grow_vertical",
+                        "grow_horizontal", "fill_vertical", "fill_horizontal" } do
+    place["set_"..prop] = function(self, value)
+        self._private[prop] = value
+        self:emit_signal("widget::layout_changed")
+    end
+    place["get_"..prop] = function() return self._private[prop] end
+end
+
+--- Reset the `grow_horizontal` and `grow_vertical` size cache.
+-- @see grow_horizontal
+-- @see grow_vertical
+function place:reset_grow_cache()
+    self._private.grow_vcache, self._private.grow_hcache = {}, {}
     self:emit_signal("widget::layout_changed")
 end
 
@@ -178,6 +241,7 @@ local function new(widget, halign, valign)
 
     gtable.crush(ret, place, true)
 
+    ret:reset_grow_cache()
     ret:set_widget(widget)
     ret:set_halign(halign)
     ret:set_valign(valign)
