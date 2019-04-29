@@ -58,6 +58,7 @@ return
     tooltip = require("awful.tooltip");
     ewmh = require("awful.ewmh");
     titlebar = require("awful.titlebar");
+    wallpaper = require("awful.wallpaper");
     rules = require("awful.rules");
     popup = require("awful.popup");
     spawn = spawn;
