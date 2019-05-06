@@ -31,6 +31,7 @@
 #include "common/xcursor.h"
 #include "common/xutil.h"
 #include "objects/button.h"
+#include "objects/window.h"
 #include "xwindow.h"
 
 #include "math.h"
@@ -525,6 +526,33 @@ luaA_root_tags(lua_State *L)
     return 1;
 }
 
+/** Change a xproperty.
+ *
+ * @param name The name of the X11 property
+ * @param value The new value for the property
+ * @function set_xproperty
+ */
+static int
+luaA_root_set_xproperty(lua_State *L)
+{
+    lua_pushnil(L);
+    lua_insert(L, -3);
+    return window_set_xproperty(L, globalconf.screen->root, 2, 3);
+}
+
+/** Get the value of a xproperty.
+ *
+ * @param name The name of the X11 property
+ * @function get_xproperty
+ */
+static int
+luaA_root_get_xproperty(lua_State *L)
+{
+    lua_pushnil(L);
+    lua_insert(L, -2);
+    return window_get_xproperty(L, globalconf.screen->root, 2);
+}
+
 const struct luaL_Reg awesome_root_lib[] =
 {
     { "buttons", luaA_root_buttons },
@@ -536,6 +564,8 @@ const struct luaL_Reg awesome_root_lib[] =
     { "size", luaA_root_size },
     { "size_mm", luaA_root_size_mm },
     { "tags", luaA_root_tags },
+    { "set_xproperty", luaA_root_set_xproperty },
+    { "get_xproperty", luaA_root_get_xproperty },
     { "__index", luaA_default_index },
     { "__newindex", luaA_default_newindex },
     { NULL, NULL }
