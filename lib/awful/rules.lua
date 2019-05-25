@@ -674,10 +674,10 @@ client.connect_signal("manage", rules.apply)
 return setmetatable(rules, {
     __newindex = function(_, k, v)
         if k == "rules" then
-            --gdebug.deprecate(
-            --    "Use awful.rules.add_rules instead awful.rules.rules",
-            --    {deprecated_in=5}
-            --)
+            gdebug.deprecate(
+                "Use awful.rules.add_rules instead awful.rules.rules",
+                {deprecated_in=5}
+            )
             crules:append_rules("awful.rules", v)
         else
             rawset(k, v)
