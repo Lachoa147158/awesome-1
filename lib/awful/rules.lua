@@ -130,9 +130,6 @@ local unpack = unpack or table.unpack -- luacheck: globals unpack (compatibility
 
 local rules = {}
 
---- This is the global rules table.
-rules.rules = {}
-
 local crules = gmatcher()
 
 --- Check if a client matches a rule.
@@ -191,12 +188,29 @@ function rules.remove_rule_source(name)
     return crules:remove_matching_source(name)
 end
 
-
 --- Apply awful.rules.rules to a client.
 -- @client c The client.
 -- @staticfct awful.rules.apply
 function rules.apply(c)
     return crules:apply(c)
+end
+
+--- Add a new rule to the default set.
+-- @param table rule A valid rule.
+function rules.append_rule(rule)
+    crules:append_rule("awful.rules", rule)
+end
+
+--- Add a new rules to the default set.
+-- @param table rule A table with rules.
+function rules.append_rules(rules)
+    crules:append_rules("awful.rules", rules)
+end
+
+--- Remove a new rule to the default set.
+-- @param table rule A valid rule.
+function rules.remove_rule(rule)
+    crules:remove_rule("awful.rulee", rule)
 end
 
 --- Add a new rule source.
@@ -247,17 +261,6 @@ function rules.add_rule_source(name, cb, ...)
     return crules:add_matching_function(name, callback, ...)
 end
 
--- Add the rules properties
-local function apply_awful_rules(c, props, callbacks)
-    for _, entry in ipairs(rules.matching_rules(c, rules.rules)) do
-        gtable.crush(props,entry.properties or {})
-
-        if entry.callback then
-            table.insert(callbacks, entry.callback)
-        end
-    end
-end
-
 --- The default `awful.rules` source.
 --
 -- **Has priority over:**
@@ -266,7 +269,7 @@ end
 --
 -- @rulesources awful.rules
 
-rules.add_rule_source("awful.rules", apply_awful_rules, {"awful.spawn"}, {})
+crules:add_matching_rules("awful.rules", {}, {"awful.spawn"}, {})
 
 -- Add startup_id overridden properties
 local function apply_spawn_rules(c, props, callbacks)
@@ -405,7 +408,7 @@ function rules.high_priority_properties.tag(c, value, props)
                 value = atag.find_by_name(nil, name)
             end
             if not value then
-                require("gears.debug").print_error("awful.rules-rule specified "
+                gdebug.print_error("awful.rules-rule specified "
                     .. "tag = '" .. name .. "', but no such tag exists")
                 return
             end
@@ -668,6 +671,18 @@ client.connect_signal("manage", rules.apply)
 
 --@DOC_rule_COMMON@
 
-return rules
+return setmetatable(rules, {
+    __newindex = function(_, k, v)
+        if k == "rules" then
+            --gdebug.deprecate(
+            --    "Use awful.rules.add_rules instead awful.rules.rules",
+            --    {deprecated_in=5}
+            --)
+            crules:append_rules("awful.rules", v)
+        else
+            rawset(k, v)
+        end
+    end
+})
 
 -- vim: filetype=lua:expandtab:shiftwidth=4:tabstop=8:softtabstop=4:textwidth=80
