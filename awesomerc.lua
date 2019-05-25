@@ -446,6 +446,7 @@ client.connect_signal("request::rules", function()
     -- @DOC_GLOBAL_RULE@
     -- All clients will match this rule.
     awful.rules.append_rule {
+        id         = "global",
         rule       = { },
         properties = {
             border_width = beautiful.border_width,
@@ -462,6 +463,7 @@ client.connect_signal("request::rules", function()
     -- @DOC_FLOATING_RULE@
     -- Floating clients.
     awful.rules.append_rule {
+        id         = "floating",
         rule_any = {
             instance = { "copyq", "pinentry" },
             class = {
@@ -486,6 +488,7 @@ client.connect_signal("request::rules", function()
     -- Add titlebars to normal clients and dialogs
     awful.rules.append_rule {
         -- @DOC_CSD_TITLEBARS@
+        id         = "titlebars",
         rule_any   = { type = { "normal", "dialog" } },
         properties = { titlebars_enabled = true      }
     }
