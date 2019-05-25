@@ -891,7 +891,11 @@
  *    end
  *
  *    awful.rules.add_rule_source(
- *        "snid", fix_startup_id, {}, {"awful.spawn", "awful.rules"}
+ *        "snid", fix_startup_id, {
+ *            "awful.spawn_once",
+ *            "awful.spawn",
+ *            "awful.rules"
+ *        }, {}
  *    )
  *
  * **Signal:**
