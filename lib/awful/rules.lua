@@ -112,9 +112,8 @@
 ---------------------------------------------------------------------------
 
 -- Grab environment we need
-local client = client
-local awesome = awesome
-local screen = screen
+
+local capi = {client = client, awesome = awesome, screen = screen}
 local table = table
 local type = type
 local ipairs = ipairs
@@ -300,7 +299,7 @@ local function apply_singleton_rules(c, props, callbacks)
     local persis_id, info = c.single_instance_id, nil
 
     -- This is a persistent property set by `awful.spawn`
-    if awesome.startup and persis_id then
+    if capi.awesome.startup and persis_id then
         info = aspawn.single_instance_manager.by_uid[persis_id]
     elseif c.startup_id then
         info = aspawn.single_instance_manager.by_snid[c.startup_id]
@@ -492,7 +491,7 @@ end
 
 function rules.extra_properties.placement(c, value, props)
     -- Avoid problems
-    if awesome.startup and
+    if capi.awesome.startup and
       (c.size_hints.user_position or c.size_hints.program_position) then
         return
     end
@@ -577,8 +576,8 @@ crules._execute = function(_, c, props, callbacks)
 
     -- Before requesting a tag, make sure the screen is right
     if props.screen then
-        c.screen = type(props.screen) == "function" and screen[props.screen(c,props)]
-            or screen[props.screen]
+        c.screen = type(props.screen) == "function" and capi.screen[props.screen(c,props)]
+            or capi.screen[props.screen]
     end
 
     -- Some properties need to be handled first. For example, many properties
@@ -656,7 +655,7 @@ crules._execute = function(_, c, props, callbacks)
 
     -- Do this at last so we do not erase things done by the focus signal.
     if props.focus and (type(props.focus) ~= "function" or props.focus(c)) then
-        c:emit_signal('request::activate', "rules", {raise=not awesome.startup})
+        c:emit_signal('request::activate', "rules", {raise=not capi.awesome.startup})
     end
 end
 
@@ -667,17 +666,17 @@ function rules.completed_with_payload_callback(c, props, callbacks)
     rules.execute(c, props, callbacks)
 end
 
-client.connect_signal("manage", rules.apply)
+capi.client.connect_signal("manage", rules.apply)
 
 -- Request rules to be added **after** all modules are loaded, but before the
 -- clients are managed. This allows module to listen to rules being added and
 -- either modify them or add their own in the right order.
 local function request_rules()
-    client.emit_signal("request::rules")
-    client.disconnect_signal("new", request_rules)
+    capi.client.emit_signal("request::rules")
+    capi.client.disconnect_signal("new", request_rules)
 end
 
-client.connect_signal("new", request_rules)
+capi.client.connect_signal("new", request_rules)
 
 --@DOC_rule_COMMON@
 
