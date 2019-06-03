@@ -10,6 +10,7 @@
 local layout = require("awful.layout")
 local aplace = require("awful.placement")
 local gdebug = require("gears.debug")
+local gobject = require("gears.object")
 local type = type
 local ipairs = ipairs
 local capi =
@@ -402,10 +403,14 @@ end)
 capi.mouse.set_index_miss_handler(function(_,key)
     if mouse.object["get_"..key] then
         return mouse.object["get_"..key]()
+    elseif mouse.object[key] then
+        return mouse.object[key]
     else
         return props[key]
     end
 end)
+
+gobject._setup_class_signals(mouse.object)
 
 --- Get or set the mouse coords.
 --
@@ -423,6 +428,7 @@ end)
 --  when button 1 is pressed.
 -- @staticfct mouse.coords
 
+--@DOC_signals_COMMON@
 
 return mouse
 
