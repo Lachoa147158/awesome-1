@@ -91,6 +91,11 @@
 --       properties = { floating = true }
 --     }
 --
+-- Flowchart
+-- =========
+--
+-- ![Client rules](../images/client_rules.svg)
+--
 -- Applicable client properties
 -- ===
 --

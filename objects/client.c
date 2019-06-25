@@ -455,6 +455,34 @@
 /**
  * Client screen.
  *
+ * Here is how the screen is selected:
+ *
+ *
+ * ![Client screen](../images/screen_selection.svg)
+ *
+ * [1] In this order and emitting signals):
+ *
+ * * `struts`
+ * * `size_hints` (no signal)
+ * * `urgent`
+ * * `focusable`
+ * * `group_window`
+ * * `icon`
+ * * `transient_for`
+ * * `leader_window` (no signal)
+ * * `machine`
+ * * `role`
+ * * `pid`
+ * * `icon`
+ * * `name`
+ * * `icon_name`
+ * * `class`
+ * * `motif_wm_hints`
+ * * `opacity`
+ *
+ * [2] See `awful.spawn`. This only works properly if the client supports
+ * startup notifications.
+ *
  * **Signal:**
  *
  *  * *property::screen*
