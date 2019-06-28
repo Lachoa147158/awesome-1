@@ -14,12 +14,12 @@ Core components relationship
  </tr>
 <tr>
   <td>client</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_tag1.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_tag1.svg"></td>
   <td>t:clients()</td>
  </tr>
 <tr>
   <td>screen</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_tag2.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_tag2.svg"></td>
   <td>t.screen</td>
  </tr>
 </table></td>
@@ -33,23 +33,28 @@ Core components relationship
  </tr>
 <tr>
   <td>client</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_tag3.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_tag3.svg"></td>
   <td>c.tags</td>
  </tr>
 <tr>
   <td>screen</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_tag4.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_tag4.svg"></td>
   <td>s.tags</td>
  </tr>
 <tr>
   <td>screen</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_tag5.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_tag5.svg"></td>
   <td>s.selected_tag</td>
  </tr>
 <tr>
   <td>screen</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_tag6.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_tag6.svg"></td>
   <td>s.selected_tags</td>
+ </tr>
+<tr>
+  <td>mouse</td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_tag7.svg"></td>
+  <td>mouse.screen</td>
  </tr>
 </table></td>
 </tr><tr>

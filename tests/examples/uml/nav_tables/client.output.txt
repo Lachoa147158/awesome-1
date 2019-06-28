@@ -14,22 +14,22 @@ Core components relationship
  </tr>
 <tr>
   <td>tag</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_client1.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_client1.svg"></td>
   <td>c.tags</td>
  </tr>
 <tr>
   <td>screen</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_client2.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_client2.svg"></td>
   <td>c.screen</td>
  </tr>
 <tr>
   <td>awful.key</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_client3.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_client3.svg"></td>
   <td>c:keys()</td>
  </tr>
 <tr>
   <td>awful.button</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_client4.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_client4.svg"></td>
   <td>c:buttons()</td>
  </tr>
 </table></td>
@@ -43,27 +43,27 @@ Core components relationship
  </tr>
 <tr>
   <td>tag</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_client5.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_client5.svg"></td>
   <td>t:clients()</td>
  </tr>
 <tr>
   <td>screen</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_client6.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_client6.svg"></td>
   <td>s.clients</td>
  </tr>
 <tr>
   <td>screen</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_client7.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_client7.svg"></td>
   <td>s.hidden_clients</td>
  </tr>
 <tr>
   <td>screen</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_client8.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_client8.svg"></td>
   <td>s.tiled_clients</td>
  </tr>
 <tr>
   <td>mouse</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_client9.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_client9.svg"></td>
   <td>mouse.current_client</td>
  </tr>
 </table></td>

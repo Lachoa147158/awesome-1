@@ -14,32 +14,32 @@ Core components relationship
  </tr>
 <tr>
   <td>tag</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_screen1.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_screen1.svg"></td>
   <td>s.tags</td>
  </tr>
 <tr>
   <td>tag</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_screen2.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_screen2.svg"></td>
   <td>s.selected_tag</td>
  </tr>
 <tr>
   <td>tag</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_screen3.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_screen3.svg"></td>
   <td>s.selected_tags</td>
  </tr>
 <tr>
   <td>client</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_screen4.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_screen4.svg"></td>
   <td>s.clients</td>
  </tr>
 <tr>
   <td>client</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_screen5.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_screen5.svg"></td>
   <td>s.hidden_clients</td>
  </tr>
 <tr>
   <td>client</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_screen6.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_screen6.svg"></td>
   <td>s.tiled_clients</td>
  </tr>
 </table></td>
@@ -53,17 +53,17 @@ Core components relationship
  </tr>
 <tr>
   <td>tag</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_screen7.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_screen7.svg"></td>
   <td>t.screen</td>
  </tr>
 <tr>
   <td>client</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_screen8.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_screen8.svg"></td>
   <td>c.screen</td>
  </tr>
 <tr>
   <td>naughty.notification</td>
-  <td><img src="/home/lepagee/dev/awesome/build/doc/images/AUTOGEN_uml_nav_tables_screen9.svg"></td>
+  <td><img src="../images/AUTOGEN_uml_nav_tables_screen9.svg"></td>
   <td>n.screen</td>
  </tr>
 </table></td>
