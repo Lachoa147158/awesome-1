@@ -131,7 +131,15 @@ end
 -- @tparam string new_name The new class name
 -- @treturn table A proxy class.
 -- @staticfct gears.debug.deprecate_class
-function debug.deprecate_class(fallback, old_name, new_name)
+function debug.deprecate_class(fallback, old_name, new_name, args)
+    args = args or {}
+    if args.deprecated_in then
+        local dep_ver = "v" .. tostring(args.deprecated_in)
+        if awesome.version < dep_ver then
+            return fallback
+        end
+    end
+
     local message = old_name.." has been renamed to "..new_name
 
     local function call(_,...)
