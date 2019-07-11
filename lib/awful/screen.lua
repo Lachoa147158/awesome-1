@@ -491,6 +491,7 @@ function screen.connect_for_each_screen(func)
     for s in capi.screen do
         func(s)
     end
+
     capi.screen.connect_signal("added", func)
 end
 
