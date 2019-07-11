@@ -275,7 +275,7 @@ LUA_OBJECT_FUNCS(screen_class, screen_t, screen)
 static bool
 screen_checker(screen_t *s)
 {
-    return s->valid;
+    return s->flags & SCREEN_FLAGS_VALID;
 }
 
 /** Get a screen argument from the lua stack */
@@ -585,6 +585,7 @@ screen_add(lua_State *L, screen_array_t *screens)
     luaA_object_ref(L, -1);
     screen_array_append(screens, new_screen);
     new_screen->xid = XCB_NONE;
+    new_screen->flags = SCREEN_FLAGS_NONE;
     return new_screen;
 }
 
@@ -662,6 +663,7 @@ screen_scan_randr_monitors(lua_State *L, screen_array_t *screens)
             continue;
 
         new_screen = screen_add(L, screens);
+        new_screen->flags |= SCREEN_FLAGS_MANAGED_C;
         viewport->screen = new_screen;
         new_screen->viewport = viewport;
         new_screen->geometry.x = monitor_iter.data->x;
@@ -762,6 +764,7 @@ screen_scan_randr_crtcs(lua_State *L, screen_array_t *screens)
 
         /* Prepare the new screen */
         screen_t *new_screen = screen_add(L, screens);
+        new_screen->flags |= SCREEN_FLAGS_MANAGED_C;
         viewport->screen = new_screen;
         new_screen->viewport = viewport;
         new_screen->geometry.x = crtc_info_r->x;
@@ -901,6 +904,7 @@ screen_scan_xinerama(lua_State *L, screen_array_t *screens)
         screen_t *s = screen_add(L, screens);
         viewport->screen = s;
         s->viewport = viewport;
+        s->flags |= SCREEN_FLAGS_MANAGED_C;
         s->geometry.x = xsi[screen].x_org;
         s->geometry.y = xsi[screen].y_org;
         s->geometry.width = xsi[screen].width;
@@ -926,6 +930,7 @@ static void screen_scan_x11(lua_State *L, screen_array_t *screens)
 
     screen_t *s = screen_add(L, screens);
     viewport->screen = s;
+    s->flags |= SCREEN_FLAGS_MANAGED_C;
     s->viewport = viewport;
     s->geometry.x = 0;
     s->geometry.y = 0;
@@ -937,7 +942,7 @@ static void
 screen_added(lua_State *L, screen_t *screen)
 {
     screen->workarea = screen->geometry;
-    screen->valid = true;
+    screen->flags |= SCREEN_FLAGS_VALID;
     luaA_object_push(L, screen);
     luaA_object_emit_signal(L, -1, "added", 0);
     lua_pop(L, 1);
@@ -1128,9 +1133,11 @@ screen_refresh(gpointer unused)
     for(int i = 0; i < globalconf.screens.len; i++) {
         screen_t *old_screen = globalconf.screens.tab[i];
         bool found = old_screen->xid == FAKE_SCREEN_XID;
+
         foreach(new_screen, new_screens)
             found |= (*new_screen)->xid == old_screen->xid;
-        if(!found) {
+
+        if(old_screen->flags & SCREEN_FLAGS_MANAGED_C && !found) {
             screen_array_take(&globalconf.screens, i);
             i--;
 
@@ -1142,7 +1149,7 @@ screen_refresh(gpointer unused)
         luaA_object_push(L, *old_screen);
         screen_removed(L, -1);
         lua_pop(L, 1);
-        (*old_screen)->valid = false;
+        (*old_screen)->flags &= (~SCREEN_FLAGS_VALID);
         luaA_object_unref(L, *old_screen);
     }
     screen_array_wipe(&removed_screens);
@@ -1581,6 +1588,19 @@ luaA_screen_get_outputs(lua_State *L, screen_t *s)
 }
 
 static int
+luaA_screen_get_managed(lua_State *L, screen_t *s)
+{
+    if (s->flags & SCREEN_FLAGS_MANAGED_LUA)
+        lua_pushstring(L, "Lua");
+    else if (s->flags & SCREEN_FLAGS_MANAGED_C)
+        lua_pushstring(L, "C");
+    else
+        lua_pushstring(L, "none");
+
+    return 1;
+}
+
+static int
 luaA_screen_get_workarea(lua_State *L, screen_t *s)
 {
     luaA_pusharea(L, s->workarea);
@@ -1625,14 +1645,28 @@ luaA_screen_fake_add(lua_State *L)
     int y = luaL_checkinteger(L, 2);
     int width = luaL_checkinteger(L, 3);
     int height = luaL_checkinteger(L, 4);
+
+    /* If the screen is managed by internal Lua code */
+    bool managed = false;
+
+    /* Allow undocumented arguments for internal use only */
+    if(lua_istable(L, 5)) {
+        lua_getfield(L, 5, "_managed");
+        managed = lua_isboolean(L, 6) && luaA_checkboolean(L, 6);
+
+        lua_pop(L, 1);
+    }
+
     screen_t *s;
 
     s = screen_add(L, &globalconf.screens);
+    s->flags |= managed ? SCREEN_FLAGS_MANAGED_LUA : SCREEN_FLAGS_NONE;
     s->geometry.x = x;
     s->geometry.y = y;
     s->geometry.width = width;
     s->geometry.height = height;
     s->xid = FAKE_SCREEN_XID;
+    s->flags |= SCREEN_FLAGS_FAKE;
 
     screen_added(L, s);
     luaA_class_emit_signal(L, &screen_class, "list", 0);
@@ -1669,7 +1703,7 @@ luaA_screen_fake_remove(lua_State *L)
     lua_pop(L, 1);
     luaA_class_emit_signal(L, &screen_class, "list", 0);
     luaA_object_unref(L, s);
-    s->valid = false;
+    s->flags &= (~SCREEN_FLAGS_VALID);
 
     return 0;
 }
@@ -1796,6 +1830,10 @@ screen_class_setup(lua_State *L)
     luaA_class_add_property(&screen_class, "_outputs",
                             NULL,
                             (lua_class_propfunc_t) luaA_screen_get_outputs,
+                            NULL);
+    luaA_class_add_property(&screen_class, "_managed",
+                            NULL,
+                            (lua_class_propfunc_t) luaA_screen_get_managed,
                             NULL);
     luaA_class_add_property(&screen_class, "workarea",
                             NULL,

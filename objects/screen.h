@@ -30,11 +30,19 @@
 typedef struct screen_output_t screen_output_t;
 ARRAY_TYPE(screen_output_t, screen_output)
 
+/** Different flags useful to manage screens */
+typedef enum {
+    SCREEN_FLAGS_NONE        = 0x0 << 0, /*!< No flags                       */
+    SCREEN_FLAGS_VALID       = 0x1 << 0, /*!< Not pending garbage collection */
+    SCREEN_FLAGS_FAKE        = 0x1 << 1, /*!< Is created using fake_add      */
+    SCREEN_FLAGS_MANAGED_LUA = 0x1 << 2, /*!< Is managed internally by Lua   */
+    SCREEN_FLAGS_MANAGED_C   = 0x1 << 3, /*!< Is managed internally by Lua   */
+} screen_flags_t;
+
 struct a_screen
 {
     LUA_OBJECT_HEADER
-    /** Is this screen still valid and may be used? */
-    bool valid;
+    screen_flags_t flags;
     /** Screen geometry */
     area_t geometry;
     /** Screen workarea */
