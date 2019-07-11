@@ -152,7 +152,8 @@ function module.create_screen_handler(viewport)
         geo.x,
         geo.y,
         geo.width,
-        geo.height
+        geo.height,
+        {_managed = true}
     )
 
     update_screen_viewport(s)
