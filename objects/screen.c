@@ -944,7 +944,7 @@ screen_added(lua_State *L, screen_t *screen)
     screen->workarea = screen->geometry;
     screen->flags |= SCREEN_FLAGS_VALID;
     luaA_object_push(L, screen);
-    luaA_object_emit_signal(L, -1, "added", 0);
+    luaA_object_emit_signal(L, -1, "_added", 0);
     lua_pop(L, 1);
 }
 
