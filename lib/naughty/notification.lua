@@ -682,6 +682,35 @@ function notification:append_actions(new_actions)
         table.insert(self._private.actions, a)
     end
 
+    local clients = notification.get_clients(self)
+
+    for _, c in ipairs(clients) do
+        if c.type == "normal" then
+            self._private.icon = gsurface(c.icon)
+            return self._private.icon
+        end
+    end
+
+    for _, c in ipairs(clients) do
+        if c.type == "dialog" then
+            self._private.icon = gsurface(c.icon)
+            return self._private.icon
+        end
+    end
+
+    return nil
+end
+
+function notification.get_clients(self)
+    -- Clients from the future don't send notification, it's useless to reload
+    -- the list over and over.
+    if self._private.clients then return self._private.clients end
+
+    if not self._private._unique_sender then return {} end
+
+    self._private.clients = require("naughty.dbus").get_clients(self)
+
+    return self._private.clients
 end
 
 --TODO v6: remove this
