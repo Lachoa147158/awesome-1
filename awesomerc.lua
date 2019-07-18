@@ -13,6 +13,8 @@ local wibox = require("wibox")
 local beautiful = require("beautiful")
 -- Notification library
 local naughty = require("naughty")
+-- Declarative object management
+local ruled = require("ruled")
 local menubar = require("menubar")
 local hotkeys_popup = require("awful.hotkeys_popup")
 -- Enable hotkeys help widget for VIM and other apps
@@ -158,9 +160,6 @@ end)
 
 -- @DOC_FOR_EACH_SCREEN@
 screen.connect_signal("request::desktop_decoration", function(s)
-    -- Each screen has its own tag table.
-    awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
-
     -- Create a promptbox for each screen
     s.mypromptbox = awful.widget.prompt()
     -- Create an imagebox widget which will contain an icon indicating which layout we're using.
@@ -442,10 +441,27 @@ root.keys(globalkeys)
 -- Rules to apply to new clients (through the "manage" signal).
 -- @DOC_RULES@
 
+tag.connect_signal("request::rules", function()
+    -- @DOC_GLOBAL_TAG_RULE@
+    -- Create 9 tags for each screen.
+    for i = 1, 9 do
+        ruled.tag.append_rule {
+            rule        = {},
+            properties  = {
+                init             = true,
+                name             = i,
+                layout           = awful.layout.layouts[1],
+                selected         = i == 1,
+                only_on_selected = true,
+            }
+        }
+    end
+end)
+
 client.connect_signal("request::rules", function()
     -- @DOC_GLOBAL_RULE@
     -- All clients will match this rule.
-    awful.rules.append_rule {
+    ruled.client.append_rule {
         id         = "global",
         rule       = { },
         properties = {
@@ -462,7 +478,7 @@ client.connect_signal("request::rules", function()
 
     -- @DOC_FLOATING_RULE@
     -- Floating clients.
-    awful.rules.append_rule {
+    ruled.client.append_rule {
         id         = "floating",
         rule_any = {
             instance = { "copyq", "pinentry" },
@@ -486,7 +502,7 @@ client.connect_signal("request::rules", function()
 
     -- @DOC_DIALOG_RULE@
     -- Add titlebars to normal clients and dialogs
-    awful.rules.append_rule {
+    ruled.client.append_rule {
         -- @DOC_CSD_TITLEBARS@
         id         = "titlebars",
         rule_any   = { type = { "normal", "dialog" } },
@@ -494,10 +510,23 @@ client.connect_signal("request::rules", function()
     }
 
     -- Set Firefox to always map on the tag named "2" on screen 1.
-    -- awful.rules.append_rule {
+    -- ruled.tag.append_rule {
     --     rule       = { class = "Firefox"     },
     --     properties = { screen = 1, tag = "2" }
     -- }
+end)
+
+ruled.notification.connect_signal("request::rules", function()
+    -- Add a red background for urgent notifications.
+    ruled.notification.append_rule {
+        rule       = { urgency = "critical" },
+        properties = { bg = "#ff0000", fg = "#0000ff", timeout = 0 }
+    }
+
+    ruled.notification.append_rule {
+        rule       = { urgency = "normal" },
+        properties = { bg      = "#00ff00"}
+    }
 end)
 
 -- }}}
@@ -562,6 +591,10 @@ end)
 -- Enable sloppy focus, so that focus follows mouse.
 client.connect_signal("mouse::enter", function(c)
     c:emit_signal("request::activate", "mouse_enter", {raise = false})
+end)
+
+naughty.connect_signal("request::display", function(n)
+    naughty.layout.box { notification = n }
 end)
 
 -- @DOC_BORDER@

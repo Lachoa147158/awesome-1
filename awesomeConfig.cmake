@@ -380,7 +380,7 @@ add_custom_command(
             ${SOURCE_DIR}/docs/_parser.lua
 )
 
-foreach(RULE_TYPE client tag screen)
+foreach(RULE_TYPE client tag screen notification)
     add_custom_command(
         OUTPUT ${BUILD_DIR}/docs/common/${RULE_TYPE}_rules_index.ldoc
         COMMAND lua ${SOURCE_DIR}/docs/build_rules_index.lua
@@ -428,6 +428,7 @@ add_custom_target(generate_awesomerc DEPENDS
     ${BUILD_DIR}/docs/common/client_rules_index.ldoc
     ${BUILD_DIR}/docs/common/tag_rules_index.ldoc
     ${BUILD_DIR}/docs/common/screen_rules_index.ldoc
+    ${BUILD_DIR}/docs/common/notification_rules_index.ldoc
     ${SOURCE_DIR}/docs/sample_theme.lua
     ${SOURCE_DIR}/docs/sample_files.lua
     ${SOURCE_DIR}/awesomerc.lua

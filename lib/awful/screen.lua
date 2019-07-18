@@ -175,6 +175,30 @@ function screen.focus_relative(offset)
                                    screen.focused().index + offset))
 end
 
+--- The area where clients can be tiled.
+--
+-- This property holds the (read only) area where clients can be tiled. Use
+-- the `padding` property, `wibox.struts` and `client.struts` to modify this
+-- area.
+--
+-- @DOC_screen_tiling_area_EXAMPLE@
+--
+-- @property tiling_area
+-- @tparam table tiling_area
+-- @tparam number tiling_area.x
+-- @tparam number tiling_area.y
+-- @tparam number tiling_area.width
+-- @tparam number tiling_area.height
+-- @see padding
+-- @see get_bounding_geometry
+
+function screen.object.get_tiling_area(s)
+    return s:get_bounding_geometry {
+        honor_padding  = true,
+        honor_workarea = true,
+    }
+end
+
 --- Get or set the screen padding.
 --
 -- @deprecated awful.screen.padding
@@ -195,6 +219,8 @@ end
 --- The screen padding.
 --
 -- This adds a "buffer" section on each side of the screen.
+--
+-- @DOC_screen_padding_EXAMPLE@
 --
 -- Here is the property effect on a layout:
 --
@@ -588,6 +614,18 @@ local function normalize(ratios, size)
 
     return ret
 end
+
+--- Is this screen supposed to survive being unplugged.
+--
+-- Is the output area corresponding to this screen is removed, then pick
+-- another screen to remove and move this one to the area previously occupied
+-- by the other screen.
+--
+--TODO
+--
+-- @property persistent
+-- @see request::remove
+-- @see request::resize
 
 --- Split the screen into multiple screens.
 --

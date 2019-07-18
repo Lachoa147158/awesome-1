@@ -93,6 +93,9 @@ new_type("rulematcher", "Rule matching properties", false, "Type")
 new_type("filterfunction", "List filters", false)
 -- Extra client properties available only in awful.rules/spawn constructs
 new_type("clientruleproperty", "Extra properties available in awful.rules and awful.spawn", false, "Type")
+-- Extra *matching* properties for rules.
+new_type("matchingproperty", "Extra matching properties used in rules", false, "Type")
+
 
 -- More fitting section names
 kind_names={topic='Documentation', module='Libraries', script='Sample files'}
@@ -101,6 +104,7 @@ kind_names={topic='Documentation', module='Libraries', script='Sample files'}
 sort_modules=true
 
 -- Add more project level (left side index) types.
+new_type("ruleslib"    , "Declarative_rules", true)
 new_type("widgetmod"   , "Widgets"   , true)
 new_type("containermod", "Widget_containers", true)
 new_type("layoutmod"   , "Widget_layouts"   , true)
@@ -136,6 +140,7 @@ file = {
     exclude = {
         -- exclude these modules, as they do not contain any written
         -- documentation
+        '../lib/ruled/init.lua',
         '../lib/awful/autofocus.lua',
         '../lib/awful/dbus.lua',
         '../lib/awful/init.lua',
@@ -168,6 +173,7 @@ file = {
         '../lib/awful/widget/progressbar.lua',
         '../lib/awful/widget/textclock.lua',
         '../lib/awful/wibox.lua',
+        '../lib/awful/rules.lua',
         '../lib/wibox/layout/constraint.lua',
         '../lib/wibox/layout/margin.lua',
         '../lib/wibox/layout/mirror.lua',
@@ -321,6 +327,7 @@ custom_display_name_handler = function(item, default_handler)
     end
 
     if item.type == "deprecated" or item.type == "deprecatedproperty" then
+        item.is_deprecated = true
         return ret .. "<i class=\"deprecated_label\"> [deprecated]</i>"
     end
 

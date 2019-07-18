@@ -9,6 +9,20 @@
 # if ldoc.custom_css then -- add custom CSS file if configured.
     <link rel="stylesheet" href="$(ldoc.custom_css)" type="text/css" />
 # end
+  <script>
+    var st = document.createElement('style')
+    var show_dep = document.createTextNode('.show_deprecated { display: block;}')
+    var deprecated_shown = false
+    st.appendChild(show_dep)
+
+    function show_deprecated() {
+      if (deprecated_shown)
+        document.getElementsByTagName('head')[0].removeChild(st);
+      else
+        document.getElementsByTagName('head')[0].appendChild(st);
+      deprecated_shown = !deprecated_shown
+    }
+  </script>
 </head>
 <body>
 
@@ -126,8 +140,18 @@
 # if not ldoc.no_summary then
 # -- bang out the tables of item types for this module (e.g Functions, Tables, etc)
 # for kind,items in module.kinds() do
-<h2><a href="#$(no_spaces(kind))">$(kind)</a></h2>
-<table class="function_list">
+#   local is_deprecated = kind:find("Deprecated") ~= nil
+#   local deprecated_class = is_deprecated and ' deprecated_block show_deprecated' or ''
+<h2>
+#  if is_deprecated then
+    <a class="deprecated_h2" onclick="show_deprecated()">
+      Click to display $(kind:lower())
+    </a>
+#  else
+    <a href="#$(no_spaces(kind))">$(kind)</a>
+#  end
+</h2>
+<table class="function_list$(deprecated_class)">
 #  for item in items() do
 #   local dn = display_name(item)
 #   if item.sanitize_type then item.sanitize_type(item, ldoc) end
@@ -154,9 +178,11 @@
 # local show_return = not ldoc.no_return_or_parms
 # local show_parms = show_return
 # for kind, items in module.kinds() do
+#   local is_deprecated = kind:find("Deprecated") ~= nil
+#   local deprecated_class = is_deprecated and ' deprecated_block show_deprecated' or ''
 #   local kitem = module.kinds:get_item(kind)
 #   local has_description = kitem and ldoc.descript(kitem) ~= ""
-    <h2 class="section-header $(has_description and 'has-description')"><a name="$(no_spaces(kind))"></a>$(kind)</h2>
+    <h2 class="section-header $(has_description and 'has-description')$(deprecated_class)"><a name="$(no_spaces(kind))"></a>$(kind)</h2>
     $(M(module.kinds:get_section_description(kind),nil))
 #   if kitem then
 #       if has_description then
@@ -171,7 +197,8 @@
 #   end
     <dl class="function">
 #  for item in items() do
-    <dt>
+#   local dclass=item.is_deprecated and ' class="deprecated_block show_deprecated"' or ''
+    <dt$(dclass)>
     <a name = "$(item.name)"></a>
     <strong>$(display_name(item))</strong>
 #   if item.display_type then
@@ -181,7 +208,7 @@
     <a style="float:right;" href="$(ldoc.source_ref(item))">line $(item.lineno)</a>
 #  end
     </dt>
-    <dd>
+    <dd$(dclass)>
     $(M(ldoc.descript(item),item))
 
 #   if ldoc.custom_tags then
@@ -302,7 +329,9 @@
 # end
 
 # for kind, mods in ldoc.kinds() do
-<h2>$(kind)</h2>
+#  local is_deprecated = kind:find("Deprecated") ~= nil
+#  local deprecated_class = is_deprecated and ' class="deprecated_block show_deprecated"' or ''
+<h2$(deprecated_class)>$(kind)</h2>
 # kind = kind:lower()
 <table class="module_list">
 # for m in mods() do

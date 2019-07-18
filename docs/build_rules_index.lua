@@ -3,7 +3,12 @@ local args = {...}
 local typename = args[2]
 local parser = require("docs._parser")
 
-local files = {"./objects/"..typename..".c", "./lib/awful/"..typename..".lua"}
+local files = {
+    "./objects/"..typename..".c",
+    "./lib/awful/"..typename..".lua",
+    "./lib/naughty/"..typename..".lua"
+}
+
 local matcher, matcher2 = "(.*)", ".*"
 
 -- The client function comes from 5 different files, but all of those are

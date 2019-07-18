@@ -227,6 +227,6 @@ function module.generate_nav_table(t)
 </table>]])
 end
 
-local w, h, image_type = loadfile(file_path)(module)
+loadfile(file_path)(module)
 
 -- vim: filetype=lua:expandtab:shiftwidth=4:tabstop=8:softtabstop=4:textwidth=80

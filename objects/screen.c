@@ -183,6 +183,8 @@
 /**
  * The screen coordinates.
  *
+ * @DOC_screen_geometry_EXAMPLE@
+ *
  * **Signal:**
  *
  *  * *property::geometry*
@@ -208,7 +210,7 @@
  * If you really want to keep an array of screens you should use something
  * along:
  *
- *     local myscreens = setmetatable({}. {__mode="k"})
+ *     local myscreens = setmetatable({}, {__mode="k"})
  *     myscreens[ screen[1] ] = "mydata"
  *
  * But it might be a better option to simply store the data directly in the
@@ -234,7 +236,9 @@
  * usually excludes the toolbars (see `awful.wibar`) and dockable clients
  * (see `client.dockable`) like WindowMaker DockAPP.
  *
- * It can be modified be altering the `wibox` or `client` struts.
+ * It can be modified be altering the `wibox.struts` or `client.struts`.
+ *
+ * @DOC_screen_workarea_EXAMPLE@
  *
  * **Signal:**
  *
@@ -1738,7 +1742,10 @@ luaA_screen_fake_add(lua_State *L)
     return 1;
 }
 
-/** Remove a screen.
+/** Remove a screen now.
+ *
+ * @DOC_ruled_screen_fake_remove_EXAMPLE@
+ *
  * @method fake_remove
  */
 static int
@@ -1766,7 +1773,13 @@ luaA_screen_fake_remove(lua_State *L)
     return 0;
 }
 
-/** Fake-resize a screen
+/** Resize a screen.
+ *
+ * Calling this will resize the screen even if it no longer matches the viewport
+ * size.
+ *
+ * @DOC_ruled_screen_fake_resize_EXAMPLE@
+ *
  * @tparam integer x The new X-coordinate for screen.
  * @tparam integer y The new Y-coordinate for screen.
  * @tparam integer width The new width for screen.
@@ -1802,6 +1815,9 @@ luaA_screen_fake_resize(lua_State *L)
 }
 
 /** Swap a screen with another one in global screen list.
+ *
+ * @DOC_ruled_screen_swap_EXAMPLE@
+ *
  * @client s A screen to swap with.
  * @method swap
  */

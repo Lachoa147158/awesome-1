@@ -64,6 +64,84 @@ local function repair_geometry(window)
     repair_geometry_lock = false
 end
 
+-- Take into account the tag state to select where to send "orphan" clients.
+--
+-- Here's a textual description of the expected behavior.
+--
+-- Instead of always choosing the current tag, this function tries to pick the
+-- "best" one(s). Some tags might be "reserved" for a single maximized apps.
+-- Some other might have a carefully crafted layout that doesn't behave well
+-- when additional clients are added. It is also possible to want that a tag
+-- set of clients is never modified while the tag is selected to avoid things
+-- "jumping around" and the master client getting replaced.
+--
+-- The "locked" tags should never be selected.
+--
+-- The "exclusive" tags should
+-- not have new clients unless explicitly told by the rules (so it never gets
+-- to this function) *or* when the client is "intrusive". The "intrusive"
+-- clients, as implemented in other OS like macOS and Samsung modified Android,
+-- are usually for "little floating tools" like calculators or color pickers.
+--
+-- If there's still nothing, look for a tag with the "class" state and the same
+-- class as the client.
+--
+-- The "fallback" tags should be used when no selected tag is inclusive
+-- (the default state).
+--
+-- If no tags are available and the client isn't sticky, then a new one
+-- is created. This avoids having untagged clients. In practice it will only
+-- happen if the user uses the tag state system, so it wont be unexpected for
+-- such workflow.
+--
+local function choose_tag(c, hints)
+    local new_tags = {}
+
+    -- Check if a selected tag welcomes this client.
+    for _, t in ipairs(c.screen.selected_tags) do
+        if t.state == "inclusive" then
+            table.insert(new_tags, t)
+        elseif t.state == "exclusive" and c.intrusive then
+            table.insert(new_tags, t)
+        end
+    end
+
+    -- Look for fallback tags for the client screen.
+    if #new_tags == 0 then
+        for _, t in ipairs(c.screen.tags) do
+            if t.state == "fallback" then
+                --TODO add a way, per screen and globally, to disable
+                -- auto-multitag.
+                table.insert(new_tags, t)
+            end
+        end
+    end
+
+    -- Look for a tag for this specific class.
+    if #new_tags == 0 then
+        new_tags = atag.find_for_class(c)
+    end
+
+    -- Attempt to deduce the category.
+--     if #new_tags == 0 then
+--         new_tags = atag.find_for_category(c)
+--     end
+
+    -- Try to avoid creating tags
+    if #new_tags == 0 then
+        c:emit_signal("request::fallback_tags", hints.reason or "other", hints)
+    end
+
+    -- Last resort, add another tag
+    if #new_tags == 0 and #c:tags() == 0 then
+        atag.new(c.name, {
+            icon     = c.icon,
+            volatile = true,
+            state    = "class",
+        })
+    end
+end
+
 --- Activate a window.
 --
 -- This sets the focus only if the client is visible.
@@ -186,7 +264,7 @@ end
 -- @client c A client to tag
 -- @tparam[opt] tag|boolean t A tag to use. If true, then the client is made sticky.
 -- @tparam[opt={}] table hints Extra information
-function ewmh.tag(c, t, hints) --luacheck: no unused
+function ewmh.tag(c, t, hints)
     local is_accepted = c:check_allowed_requests(
         "request::tag", hints and hints.reason or "", hints
     ) ~= false
@@ -198,17 +276,35 @@ function ewmh.tag(c, t, hints) --luacheck: no unused
 
     if not t then
         if c.transient_for and not (hints and hints.reason == "screen") then
+            -- When a dialog or a popup opens with a known parent client, bypass
+            -- everything and favor the parent client screen and tags.
             c.screen = c.transient_for.screen
             if not c.sticky then
                 local tags = c.transient_for:tags()
                 c:tags(#tags > 0 and tags or c.transient_for.screen.selected_tags)
             end
         else
-            c:to_selected_tags()
+            -- Some dynamic tag rules can create a tag and/or assign clients to
+            -- tags.
+            atag.rules.apply(c, hints)
+
+            -- By default, no rules will set the tags, so fallback to the
+            -- selected one(s).
+            if #c:tags() == 0 then
+                c:to_selected_tags()
+            end
         end
     elseif type(t) == "boolean" and t then
         c.sticky = true
     else
+        -- When there is dynamic tag rules, take precedence over the desktop
+        -- index. This is "better" because if tags are dynamic, the index has
+        -- no "stable" meaning and should not be taken into account on restart.
+        if awesome.startup and hints.reason == "ewmh" then
+            atag.rules.apply(c, hints)
+            if #c:tags() > 0 then return end
+        end
+
         c.screen = t.screen
         c:tags({ t })
     end
@@ -253,10 +349,15 @@ function ewmh.geometry(c, context, hints)
 
     local layout = c.screen.selected_tag and c.screen.selected_tag.layout or nil
 
-    -- Setting the geometry will not work unless the client is floating.
-    if (not c.floating) and (not layout == asuit.floating) then
-        return
-    end
+    local is_tiled = not (
+        c.floating               or
+        c.immobilized_horizontal or
+        c.immobilized_vertical   or
+        layout == asuit.floating
+    )
+
+    -- Setting the geometry will cause the client to flicker if it is tiled.
+    if is_tiled then return end
 
     context = context or ""
 

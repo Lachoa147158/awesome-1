@@ -145,6 +145,8 @@ end
 --
 -- The index is the position as shown in the `awful.widget.taglist`.
 --
+-- @DOC_ruled_tag_index_EXAMPLE@
+--
 -- **Signal:**
 --
 -- * *property::index*
@@ -219,8 +221,11 @@ function tag.move(new_index, target_tag)
 end
 
 --- Swap 2 tags.
+--
+-- @DOC_ruled_tag_swap_EXAMPLE@
+--
 -- @method swap
--- @param tag2 The second tag
+-- @tparam tag tag2 The second tag
 -- @see client.swap
 function tag.object.swap(self, tag2)
     local idx1, idx2 = tag.object.get_index(self), tag.object.get_index(tag2)
@@ -304,10 +309,19 @@ function tag.add(name, props)
 end
 
 --- Create a set of tags and attach it to a screen.
+--
+-- This is what's performed by the default config:
+--
+-- @DOC_ruled_tag_default_config_EXAMPLE@
+--
+-- It is also possible to set multiple layouts:
+--
+-- @DOC_ruled_tag_new_with_layouts_EXAMPLE@
+--
 -- @staticfct awful.tag.new
--- @param names The tag name, in a table
--- @param screen The tag screen, or 1 if not set.
--- @param layout The layout or layout table to set for this tags by default.
+-- @tparam table names The tag name, in a table
+-- @tparam screen|nil screen The tag screen, or 1 if not set.
+-- @tparam table layout The layout or layout table to set for this tags by default.
 -- @return A table with all created tags.
 function tag.new(names, screen, layout)
     screen = get_screen(screen or 1)
@@ -337,16 +351,20 @@ function tag.find_fallback(screen, invalids)
     local scr = screen or ascreen.focused()
     local t = invalids or scr.selected_tags
 
+--           assert((not t) or t.clients)
+
     for _, v in pairs(scr.tags) do
         if not gtable.hasitem(t, v) then return v end
+--         local below_max = #t:clients() < (t.max_client or math.huge)
+--         if below_max and (not gtable.hasitem(t, v)) then
+--             return v
+--         end
     end
 end
 
 --- Delete a tag.
 --
--- To delete the current tag:
---
---    mouse.screen.selected_tag:delete()
+-- @DOC_ruled_tag_delete_EXAMPLE@
 --
 -- @method delete
 -- @see awful.tag.add
@@ -546,6 +564,89 @@ function tag.find_by_name(s, name)
         if name == t.name then
             return t
         end
+    end
+end
+
+--- When set, clients added to this tag will be untagged from all other tags.
+--
+-- In effect, when applied to all tags, this allows to disable multi-tagging.
+-- In turn, this allows to implement Xmonad style shared tags. This workflow
+-- favors sharing a single set of "workspaces" across all screens. A screen
+-- can then select a workspace and it will be moved there.
+--
+-- @property isolated
+-- @param[opt=false] boolean
+
+--- The maximum number of client before creating a duplicate.
+--
+-- This is taken into account by `awful.tag.find_fallback` and `ruled.tag`
+-- when choosing tags for a client.
+--
+-- This can be used along with a "static" number of tags *used as workspaces)
+-- to balance the tiled layout. When used with a dynamic number of tags, it
+-- helps to duplicate tags when they grow too large.
+--
+-- @property max_client
+-- @param[opt=nil] number|nil
+
+--- Define when clients on this tag are allowed to steal the focus.
+--
+-- Valid values are:
+--
+-- * **default**: Steal the focus even when the tag isn't selected.
+-- * **selected**: Only allow the clients to focus to be stolen if the tag is
+--    selected.
+-- * **safeguard_client**: If a client within the tag has the focus, prefer to
+--   keep it rather than let other clients steal the focus.
+-- * **safeguard_tag**: If the tag is selected, only allow other clients tagged
+--  in the same tag to steal the focus.
+-- * **safeguard_screen_tag**: Same as `safeguard_tag`, but allow focus to be
+--  stolen by other screens since it keeps the tag as-is.
+--
+-- This is taken into account by `awful.client.focus.filter` and
+-- `awful.ewmh.activate` when deciding whether or not to grant the focus
+-- stealing request. Note that directly using `client.focus` bypasses this
+-- property.
+--
+-- @property focus_policy
+-- @param[opt="default"] string
+-- @see client.focus
+-- @see request::activate
+
+--- Function called when new screens are added to potentially relocate the tag.
+--
+-- It takes the tag object as first parameter and the *new* screen as second
+-- parameter. If the screen was deleted, then the second parameter will be
+-- `nil`. If it returns a screen, it will be moved there. If nil is returned, it
+-- will not be relocated. Optionally, the function can also return an index.
+--
+-- This is useful when plugging and unplugging screens often without losing the
+-- layouts.
+--
+-- @property relocator
+-- @tparam function|nil relocator
+
+--- Define if a tag implicitly reject or allow any client.
+--
+-- By default, if no rules do otherwise, new clients ends up in the screen
+-- selected tags. If a tag is `exclusive`, this wont be allowed. Instead, only
+-- clients which are `intrusive` or clients explicitly sent to the tag by the
+-- rules will be tagged with this tag.
+--
+-- @property exclusive
+-- @param[opt=false] boolean
+
+local prop_defaults = {
+    isolated = false, focus_policy = "default", exclusive = false,
+}
+
+for _, prop in ipairs {"isolated", "focus_policy", "max_client", "exclusive"} do
+    tag.object["set_"..prop] = function(t, e)
+        tag.setproperty(t, prop, e)
+    end
+
+    tag.object["get_"..prop] = function(t)
+        return tag.getproperty(t, prop) or prop_defaults[prop]
     end
 end
 
@@ -799,7 +900,13 @@ end
 
 --- The tag client layout.
 --
--- This property hold the layout. A layout can be either stateless or stateful.
+-- This property holds the layout. Layouts are algorithms to place elements,
+-- usually clients on the screen according to a predetermined pattern. The
+-- layouts occupy the `tiling_area` of the screen.
+--
+-- @DOC_screen_taglayout_EXAMPLE@
+--
+-- A layout can be either stateless or stateful.
 -- Stateless layouts are used by default by Awesome. They tile clients without
 -- any other overhead. They take an ordered list of clients and place them on
 -- the screen. Stateful layouts create an object instance for each tags and
@@ -850,10 +957,25 @@ end
 -- a layout not present is used. If that's the case they will be added at the
 -- front of the list.
 --
+-- This will be taken into account when calling `awful.layout.inc`.
+--
 -- @property layouts
 -- @param table
 -- @see awful.layout.layouts
+-- @see awful.layout.inc
+-- @see awful.widget.layoutlist
 -- @see layout
+-- @usage local t = aw_tag.add("My new tag", {
+--     layout  = awful.layout.suit.tile,
+--     layouts = {
+--         awful.layout.suit.tile,
+--         awful.layout.suit.spiral,
+--         awful.layout.suit.spiral.dwindle,
+--         awful.layout.suit.magnifier,
+--         awful.layout.suit.corner.nw,
+--         awful.layout.suit.max.fullscreen,
+--     }
+-- })
 
 function tag.object.set_layout(t, layout)
 
@@ -944,16 +1066,33 @@ end
 --- Define if the tag must be deleted when the last client is untagged.
 --
 -- This is useful to create "throw-away" tags for operation like 50/50
--- side-by-side views.
+-- (Windows "Aero Snap) side-by-side views. This keybinding code for this is:
 --
---    local t = awful.tag.add("Temporary", {
---         screen   = client.focus.screen,
---         volatile = true,
---         clients  = {
---             client.focus,
---             awful.client.focus.history.get(client.focus.screen, 1)
---         }
---    }
+--    local function aero_tag()
+--        local c = client.focus
+--
+--        if not c then return end
+--
+--        local c2 = awful.client.focus.history.list[2]
+--
+--        if (not c2) or c2 == c then return end
+--
+--        local t = aw_tag.add("Aero", {
+--            screen              = c.screen,
+--            volatile            = true,
+--            layout              = awful.layout.suit.tile,
+--            master_width_factor = 0.5
+--        })
+--
+--        t:clients({c, c2})
+--
+--        t:view_only()
+--    end
+--
+-- @DOC_ruled_tag_volatile_EXAMPLE@
+--
+-- As you can see, the "Volatile" tag has been automatically discarded while
+-- the "Non-volatile" tag is still there (but with zero clients).
 --
 -- **Signal:**
 --
@@ -961,6 +1100,7 @@ end
 --
 -- @property volatile
 -- @param boolean
+-- @see delete
 
 -- Volatile accessors are implicit
 
@@ -1391,6 +1531,9 @@ function tag.incncol(add, t, sensible)
 end
 
 --- View no tag.
+--
+-- @DOC_ruled_tag_viewnone_EXAMPLE@
+--
 -- @staticfct awful.tag.viewnone
 -- @tparam[opt] int|screen screen The screen.
 function tag.viewnone(screen)
@@ -1401,18 +1544,25 @@ function tag.viewnone(screen)
     end
 end
 
---- View a tag by its taglist index.
+--- Select a tag relative to the currently selected one.
+--
+-- Note that this doesn't work well with multiple selection.
+--
+-- @DOC_ruled_tag_viewidx_EXAMPLE@
 --
 -- This is equivalent to `screen.tags[i]:view_only()`
 -- @staticfct awful.tag.viewidx
+-- @tparam number i The **relative** index to see.
+-- @tparam[opt] screen screen The screen.
 -- @see screen.tags
--- @param i The **relative** index to see.
--- @param[opt] screen The screen.
+-- @see awful.tag.viewnext
+-- @see awful.tag.viewprev
 function tag.viewidx(i, screen)
     screen = get_screen(screen or ascreen.focused())
     local tags = screen.tags
     local showntags = {}
     for _, t in ipairs(tags) do
+        --FIXME v5 this is undocumented and redundant
         if not tag.getproperty(t, "hide") then
             table.insert(showntags, t)
         end
@@ -1438,21 +1588,38 @@ function tag.getidx(query_tag)
     return tag.object.get_index(query_tag or ascreen.focused().selected_tag)
 end
 
---- View next tag. This is the same as tag.viewidx(1).
+--- View next tag. This is the same as `tag.viewidx(1)`.
+--
+-- Note that this doesn't work well with multiple selection.
+--
+-- @DOC_ruled_tag_viewnext_EXAMPLE@
+--
 -- @staticfct awful.tag.viewnext
--- @param screen The screen.
+-- @tparam screen screen The screen.
+-- @see awful.tag.viewidx
+-- @see awful.tag.viewprev
 function tag.viewnext(screen)
     return tag.viewidx(1, screen)
 end
 
---- View previous tag. This is the same a tag.viewidx(-1).
+--- View previous tag. This is the same a `tag.viewidx(-1)`.
+--
+-- Note that this doesn't work well with multiple selection.
+--
+-- @DOC_ruled_tag_viewprev_EXAMPLE@
+--
 -- @staticfct awful.tag.viewprev
--- @param screen The screen.
+-- @tparam screen screen The screen.
+-- @see awful.tag.viewidx
+-- @see awful.tag.viewnext
 function tag.viewprev(screen)
     return tag.viewidx(-1, screen)
 end
 
 --- View only a tag.
+--
+-- @DOC_ruled_tag_view_only_EXAMPLE@
+--
 -- @method view_only
 -- @see selected
 function tag.object.view_only(self)
@@ -1473,7 +1640,7 @@ end
 --- View only a tag.
 -- @deprecated awful.tag.viewonly
 -- @see tag.view_only
--- @param t The tag object.
+-- @tparam tag t The tag object.
 function tag.viewonly(t)
     gdebug.deprecate("Use t:view_only() instead of awful.tag.viewonly", {deprecated_in=4})
 
@@ -1486,9 +1653,11 @@ end
 -- selected. The tags already selected do not count. To do nothing if one or
 -- more of the tags are already selected, set `maximum` to zero.
 --
+-- @DOC_ruled_tag_viewmore_EXAMPLE@
+--
 -- @staticfct awful.tag.viewmore
--- @param tags A table with tags to view only.
--- @param[opt] screen The screen of the tags.
+-- @tparam table tags A table with tags to view only.
+-- @tparam[opt] screen screen The screen of the tags.
 -- @tparam[opt=#tags] number maximum The maximum number of tags to select.
 function tag.viewmore(tags, screen, maximum)
     maximum = maximum or #tags
@@ -1666,6 +1835,7 @@ end
 
 -- Update the urgent counter when a client is untagged.
 local function client_untagged(c, t)
+
     if c.urgent then
         update_urgent(t, -1)
     end
@@ -1721,7 +1891,19 @@ end)
 capi.screen.connect_signal("removed", function(s)
     -- First give other code a chance to move the tag to another screen
     for _, t in pairs(s.tags) do
-        t:emit_signal("request::screen")
+        local new_s, new_idx = nil, nil
+
+        -- The tag rules may already define how to handle this event.
+        if t._rule and t._rule.properties and t._rule.properties.relocator then
+            new_s, new_idx = t._rule.properties.relocator(t, nil)
+        end
+
+        if new_s then
+            t.screen, t.index = new_s, new_idx
+        else
+            -- Delegate the fallback to a request handler.
+            t:emit_signal("request::screen")
+        end
     end
     -- Everything that's left: Tell everyone that these tags go away (other code
     -- could e.g. save clients)
@@ -1766,6 +1948,10 @@ object.properties(capi.tag, {
     getter_fallback = tag.getproperty,
     setter_fallback = tag.setproperty,
 })
+
+-- Add a rule system to manage the tags.
+tag.rules = require("ruled.tag") --TODO remove
+gtable.crush(tag.object, tag.rules._object) --TODO remove
 
 --@DOC_object_COMMON@
 
