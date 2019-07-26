@@ -47,6 +47,8 @@ struct a_screen
     area_t geometry;
     /** Screen workarea */
     area_t workarea;
+    /** Access the screens by names instead of index */
+    char *name;
     /** Opaque pointer to the psysical geometry */
     struct viewport_t *viewport;
     /** Some XID identifying this screen */
