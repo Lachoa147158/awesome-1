@@ -16,6 +16,9 @@
 
 --- A table which content will be compared to the target object current properties.
 --
+-- The comparison operator for this section is equal to (`==`). In case of a
+-- string, it will be pattern matched.
+--
 -- @rulecomponent rule
 -- @param table
 -- @see rule_any
@@ -49,6 +52,22 @@
 -- @param table
 -- @see rule
 -- @see except
+
+--- A table which content will be compared to the target object current properties.
+--
+-- The comparison operator for this section is greater than (`>`).
+--
+-- @rulecomponent rule_every
+-- @param table
+-- @see rule
+
+--- A table which content will be compared to the target object current properties.
+--
+-- The comparison operator for this section is lesser than (`<`).
+--
+-- @rulecomponent rule_every
+-- @param table
+-- @see rule
 
 --- An identifier for this rule.
 --
