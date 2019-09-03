@@ -1728,18 +1728,46 @@ function tag.viewnext(screen)
     return tag.viewidx(1, screen)
 end
 
+--- View next tag, relative to the currently selected one.
+--
+-- @staticfct awful.tag.view_next
+-- @tparam table args
+-- @tparam[opt=awful.screen.focused] screen args.screen The screen.
+-- @tparam[opt=true] boolean args.rotate When reaching the limit of the array,
+--  start from the other edge.
+-- @tparam[opt=false] boolean args.grouped Use the grouped tag indices instead of
+--  the per screen ones.
+-- @tparam[opt=false] boolean args.force When `grouped` is set, this will untag
+--  the clients tagged on more than 1 tag to allow the tag to be selected.
+function tag.view_next(args)
+    return tag.view_relative(1, args)
+end
+
 --- View previous tag. This is the same a `tag.viewidx(-1)`.
 --
 -- Note that this doesn't work well with multiple selection.
 --
 -- @DOC_sequences_tag_viewprev_EXAMPLE@
---
--- @staticfct awful.tag.viewprev
+---- @staticfct awful.tag.viewprev
 -- @tparam screen screen The screen.
 -- @see awful.tag.viewidx
 -- @see awful.tag.viewnext
 function tag.viewprev(screen)
     return tag.viewidx(-1, screen)
+end
+
+--- View previous tag, relative to the currently selected one.
+-- @staticfct awful.tag.viewprev
+-- @tparam table args
+-- @tparam[opt=awful.screen.focused] screen args.screen The screen.
+-- @tparam[opt=true] boolean args.rotate When reaching the limit of the array,
+--  start from the other edge.
+-- @tparam[opt=false] boolean args.grouped Use the grouped tag indices instead of
+--  the per screen ones.
+-- @tparam[opt=false] boolean args.force When `grouped` is set, this will untag
+--  the clients tagged on more than 1 tag to allow the tag to be selected.
+function tag.view_previous(args)
+    return tag.view_relative(-1, args)
 end
 
 --- View only a tag.
