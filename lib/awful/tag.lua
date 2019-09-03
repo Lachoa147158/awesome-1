@@ -1586,11 +1586,17 @@ end
 --- View a tag by its taglist index.
 --
 -- This is equivalent to `screen.tags[i]:view_only()`
--- @staticfct awful.tag.viewidx
+-- @deprecated awful.tag.viewidx
 -- @see screen.tags
 -- @param i The **relative** index to see.
 -- @param[opt] screen The screen.
 function tag.viewidx(i, screen)
+    -- The old implementation is kept because it has some undocumented behavior
+    -- which the `awful.tag.view_relative` doesn't handle.
+
+    gdebug.deprecate("Use awful.tag.view_relative instead of awful.tag.viewidx",
+        {deprecated_in=5})
+
     screen = get_screen(screen or ascreen.focused())
     local tags = screen.tags
     local showntags = {}
@@ -1673,9 +1679,12 @@ function tag.getidx(query_tag)
 end
 
 --- View next tag. This is the same as tag.viewidx(1).
--- @staticfct awful.tag.viewnext
+-- @deprecated awful.tag.viewnext
 -- @param screen The screen.
 function tag.viewnext(screen)
+    gdebug.deprecate("Use awful.tag.view_next instead of awful.tag.viewnext",
+        {deprecated_in=5})
+
     return tag.viewidx(1, screen)
 end
 
@@ -1695,9 +1704,11 @@ function tag.view_next(args)
 end
 
 --- View previous tag. This is the same a tag.viewidx(-1).
--- @staticfct awful.tag.viewprev
+-- @deprecated awful.tag.viewprev
 -- @param screen The screen.
 function tag.viewprev(screen)
+    gdebug.deprecate("Use awful.tag.view_previous instead of awful.tag.viewprevious",
+        {deprecated_in=5})
     return tag.viewidx(-1, screen)
 end
 
