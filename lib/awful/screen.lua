@@ -713,6 +713,28 @@ function screen.set_auto_dpi_enabled(enabled)
     data.autodpi = enabled
 end
 
+--- The tag group this screen is associated with.
+--
+-- By default, each screen has its own tags and this is as far as it gets.
+-- By setting this property, multiple screens can be loosely associated with
+-- a group of tags. `awful.widget.taglist` and many `awful.tag` function will
+-- take this into account and assume they can move those tags to any of the
+-- screen within the same group.
+--
+-- Note that a tag is still on a single screen at any point in time. Being able
+-- to relocate tags within multiple screen greatly simplify managing them when
+-- screens are added and removed often. However, it comes at a reduced
+-- flexibility since this cannot work when clients are tagged to multiple tags
+-- at the same time. Using `tag_group`s and multi-tagged client at the same
+-- time is not supported and many `awful.tag` will refuse to work (unless
+-- forced) if such situation arise.
+--
+-- By default, screens are not part of any group. Screens can be part of at
+-- most group to prevent further ambiguities.
+--
+-- @property tag_group
+-- @tparam nil|string tag_group
+
 --- The number of pixels per inch of the screen.
 --
 -- The default DPI comes from the X11 server. In most case, it will be 96. If
