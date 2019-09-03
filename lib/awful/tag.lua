@@ -370,6 +370,17 @@ function tag.swap(tag1, tag2)
     tag.object.swap(tag1, tag2)
 end
 
+function tag.object.fork(self, args)
+    args = args or {}
+
+    local nt = tag.add(self.name, args)
+    nt:clients(self:clients())
+
+    --TODO
+
+    return nt
+end
+
 --- Add a tag.
 --
 -- This function allow to create tags from a set of properties:
