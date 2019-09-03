@@ -188,6 +188,8 @@ function module.create_screen_handler(viewport)
 
     capi.screen.emit_signal("request::_rules_create", viewport, args)
 
+    -- The rules say to ignore this viewport.
+    if viewport.ignored then return end
 
     -- Get the screen created by the rules or create one.
     local s = viewport.screen or capi.screen.fake_add(
