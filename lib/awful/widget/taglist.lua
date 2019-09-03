@@ -495,7 +495,7 @@ function taglist.new(args, filter, buttons, style, update_function, base_widget)
         args[k] = v
     end
 
-    screen = screen or get_screen(args.screen)
+    screen = screen or (args.screen and get_screen(args.screen))
 
     local uf = args.update_function or common.list_update
     local w = base.make_widget_from_value(args.layout or fixed.horizontal)
@@ -509,17 +509,19 @@ function taglist.new(args, filter, buttons, style, update_function, base_widget)
     local queued_update = {}
 
     function w._do_taglist_update_now()
-        if screen.valid then
+        if (screen and screen.valid) or (not screen) then
             taglist_update(screen, w, args.buttons, args.filter, data, args.style, uf, args)
         end
-        queued_update[screen] = false
+        queued_update[screen or math.huge] = false
     end
 
     function w._do_taglist_update()
+        local id = screen or math.huge
+
         -- Add a delayed callback for the first update.
-        if not queued_update[screen] then
+        if not queued_update[id] then
             timer.delayed_call(w._do_taglist_update_now)
-            queued_update[screen] = true
+            queued_update[id] = true
         end
     end
     if instances == nil then
@@ -530,6 +532,10 @@ function taglist.new(args, filter, buttons, style, update_function, base_widget)
                 for _, tlist in pairs(i) do
                     tlist._do_taglist_update()
                 end
+            end
+
+            for _, tlist in pairs(instances[math.huge] or {}) do
+                tlist._do_taglist_update()
             end
         end
         local uc = function (c) return u(c.screen) end
@@ -556,10 +562,10 @@ function taglist.new(args, filter, buttons, style, update_function, base_widget)
         end)
     end
     w._do_taglist_update()
-    local list = instances[screen]
+    local list = instances[screen or math.huge]
     if not list then
         list = setmetatable({}, { __mode = "v" })
-        instances[screen] = list
+        instances[screen or math.huge] = list
     end
     table.insert(list, w)
     return w
