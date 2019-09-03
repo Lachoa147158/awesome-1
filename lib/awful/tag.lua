@@ -141,9 +141,12 @@ end
 -- @tfield integer awful.tag.history.limit
 -- @tparam[opt=20] integer limit
 
---- The tag index.
+--- The (per screen) tag index.
 --
 -- The index is the position as shown in the `awful.widget.taglist`.
+--
+-- Note that the `index` are independant from the `group_index`. The order
+-- doesn't have to be a 1:1 map.
 --
 -- **Signal:**
 --
@@ -151,7 +154,46 @@ end
 --
 -- @property index
 -- @param integer
--- @treturn number The tag index.
+-- @see group_index
+
+local function set_index_common(tags, self, idx, scr, prop)
+    -- sort the tags by index
+    table.sort(tags, function(a, b)
+        local ia, ib = tag.getproperty(a, prop), tag.getproperty(b, prop)
+        return (ia or math.huge) < (ib or math.huge)
+    end)
+
+    if (not idx) or (idx < 1) or (idx > #tags) then
+        return
+    end
+
+    local rm_index = nil
+
+    for i, t in ipairs(tags) do
+
+        -- Useful when this is called for the first time.
+        if not tag.getproperty(t, prop) then
+            tag.setproperty(t, prop, i)
+        end
+
+        if t == self then
+            table.remove(tags, i)
+            rm_index = i
+            break
+        end
+    end
+
+    table.insert(tags, idx, self)
+    for i = idx < rm_index and idx or rm_index, #tags do
+        local tmp_tag = tags[i]
+
+        if scr then
+            tag.object.set_screen(tmp_tag, scr)
+        end
+
+        tag.setproperty(tmp_tag, prop, i)
+    end
+end
 
 function tag.object.set_index(self, idx)
     local scr = get_screen(tag.getproperty(self, "screen"))
@@ -159,32 +201,7 @@ function tag.object.set_index(self, idx)
     -- screen.tags cannot be used as it depend on index
     local tmp_tags = raw_tags(scr)
 
-    -- sort the tags by index
-    table.sort(tmp_tags, function(a, b)
-        local ia, ib = tag.getproperty(a, "index"), tag.getproperty(b, "index")
-        return (ia or math.huge) < (ib or math.huge)
-    end)
-
-    if (not idx) or (idx < 1) or (idx > #tmp_tags) then
-        return
-    end
-
-    local rm_index = nil
-
-    for i, t in ipairs(tmp_tags) do
-        if t == self then
-            table.remove(tmp_tags, i)
-            rm_index = i
-            break
-        end
-    end
-
-    table.insert(tmp_tags, idx, self)
-    for i = idx < rm_index and idx or rm_index, #tmp_tags do
-        local tmp_tag = tmp_tags[i]
-        tag.object.set_screen(tmp_tag, scr)
-        tag.setproperty(tmp_tag, "index", i)
-    end
+    set_index_common(tmp_tags, self, idx, scr, "index")
 end
 
 function tag.object.get_index(query_tag)
@@ -203,6 +220,109 @@ function tag.object.get_index(query_tag)
             return i
         end
     end
+end
+
+--- The tag group.
+--
+-- A tag group is a set of tags losely associated with a group of screens.
+-- This means the `awful.tag` will be allowed to move those tags between
+-- screens from the same group. The `awful.widget.taglist` will also switch
+-- to display the screen tag group rather than the tags currently attached to
+-- the screen. This replicates how [xmonad](https://xmonad.org/) handle
+-- workspaces, but with the extra flexibility of supporting multiple groups.
+--
+-- @property group
+
+-- Once set, each tags will have to track their grouped indices.
+-- This is a rather "large" overhead, so better avoid this is the user prefer
+-- per screen tags.
+local tag_groups = {}
+
+local function remove_from_group(self)
+    local g = tag.getproperty(self, "group")
+
+    -- Update the grouped indices.
+    if g and tag_groups[g] then
+        local idx = tag.getproperty(self, "group_index")
+
+        for _=idx, #tag_groups[g] do
+            tag.setproperty(
+                self, "group_index", tag.getproperty(self, "group_index") - 1
+            )
+        end
+
+        assert(tag_groups[g][idx] == self)
+        table.remove(tag_groups[g], idx)
+    end
+end
+
+function tag.object.get_group(self)
+    return tag.getproperty(self, "group")
+end
+
+function tag.object.set_group(self, group)
+    local old_g = tag.getproperty(self, "group")
+
+    -- Nothing to do.
+    if group == old_g then return end
+
+    if old_g then
+        remove_from_group(self)
+    end
+
+    if not group then return end
+
+    if tag_groups[group] then
+        tag.object.set_group_index(self, #tag._get_by_group(group)+1)
+    end
+
+    tag.setproperty(self, "group", group)
+end
+
+--- The grouped tag index.
+--
+-- This index is grouped rather than being per screen. This is useful when the
+-- tags are shared across all screens rather than being used per screen. This
+-- kind of workflow is less flexible than per-screen tagging because it becomes
+-- harder to tag a client with multiple tags. However is makes some use case,
+-- such as adding and removing screens often, easier to handle.
+--
+-- Note that grouped indices are independant from screen indices. The order
+-- doesn't have to be a 1:1 map.
+--
+-- @property group_index
+-- @tparam number group_index Something between 1 and the number of tags.
+-- @see index
+
+function tag.object.set_group_index(self, idx)
+    assert(
+        tag.getproperty(self, "group"),
+        "Setting a group index without a group makes no sense."
+    )
+
+    set_index_common(root.tags(), self, idx, nil, "group_index")
+end
+
+function tag.object.get_group_index(self)
+    local ret = tag.getproperty(self, "group_index")
+
+    local g = tag.getproperty(self, "group")
+
+    assert( g, "Setting a group index without a group makes no sense.")
+
+    -- This is the first time group_index is used.
+    if g and not tag_groups[g] then
+        tag_groups[g] = {}
+
+        for i, t in ipairs(root.tags()) do --FIXME
+            if tag.getproperty(t, "group") == g then
+                tag.setproperty(t, "group_index", i)
+                tag_groups[g][i] = t
+            end
+        end
+    end
+
+    return ret
 end
 
 --- Move a tag to an absolute position in the screen[]:tags() table.
@@ -275,6 +395,20 @@ function tag.add(name, props)
     -- Index is also required
     properties.index = properties.index or #raw_tags(properties.screen)+1
 
+    -- Delay the `group_index` property to avoid the O(!N) burst of signals.
+    local gi_to_emit = nil
+
+    local g = properties.group
+
+    if g and tag_groups[g] then
+        if properties.group_index then
+            gi_to_emit = properties.group_index
+            properties.group_index = nil
+        else
+            properties.group_index = #tag_groups[g]+1
+        end
+    end
+
     local newtag = capi.tag{ name = name }
 
     -- Start with a fresh property table to avoid collisions with unsupported data
@@ -292,6 +426,19 @@ function tag.add(name, props)
         end
     end
 
+    -- Batch update the grouped indices.
+    if gi_to_emit then
+        table.insert(tag_groups[g], gi_to_emit, newtag)
+        tag.setproperty(newtag, "group_index", gi_to_emit)
+
+        for i=gi_to_emit+1, #tag_groups[g] do
+            local t = tag_groups[g][i]
+            tag.setproperty(t, "group_index", i)
+        end
+    elseif tag_groups[g] then
+        table.insert(tag_groups[g], newtag)
+    end
+
     return newtag
 end
 
@@ -305,13 +452,15 @@ function tag.new(names, screen, layout)
     screen = get_screen(screen or 1)
     -- True if `layout` should be used as the layout of each created tag
     local have_single_layout = (not layout) or (layout.arrange and layout.name)
-    local tags = {}
+    local tags, group = {}, screen.group
     for id, name in ipairs(names) do
         local l = layout
         if not have_single_layout then
             l = layout[id] or layout[1]
         end
-        table.insert(tags, id, tag.add(name, {screen = screen, layout = l}))
+        table.insert(tags, id, tag.add(
+            name, {screen = screen, layout = l, group = group}
+        ))
         -- Select the first tag.
         if id == 1 then
             tags[id].selected = true
@@ -395,6 +544,8 @@ function tag.object.delete(self, fallback_tag, force)
     for i=idx+1, #tags do
         tag.setproperty(tags[i], "index", i-1)
     end
+
+    remove_from_group(self)
 
     -- If no tags are visible (and we did not delete the lasttag), try and
     -- view one. The > 1 is because ntags is no longer synchronized with the
@@ -516,6 +667,37 @@ function tag.gettags(s)
     s = get_screen(s)
 
     return s and s.tags or {}
+end
+
+-- Get the tags ordered by their grouped indices.
+--
+-- Note, do **not** modify the resulting list directly.
+-- @staticfct awful.tag._get_by_group
+-- @taparam string name The group name.
+-- @treturn table All tags ordered by grouped indices.
+
+function tag._get_by_group(name)
+    -- Init the list.
+    if not tag_groups[name] then
+        local t = nil
+
+        for _, t2 in ipairs(root.tags()) do
+            if tag.getproperty(t2, "group") == name then
+                t = t2
+                break
+            end
+        end
+
+        if not t then
+            tag_groups[name] = {}
+            return tag_groups[name]
+        end
+
+        -- This will init the index.
+        tag.object.get_group_index(t)
+    end
+
+    return tag_groups[name]
 end
 
 --- Find a tag by name.
