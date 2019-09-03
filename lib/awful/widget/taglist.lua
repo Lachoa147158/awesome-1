@@ -232,36 +232,37 @@ taglist.filter, taglist.source = {}, {}
 
 local instances = nil
 
-function taglist.taglist_label(t, args)
-    if not args then args = {} end
+function taglist.taglist_label(t, style, args)
+    style = style or {}
+
     local theme = beautiful.get()
-    local fg_focus = args.fg_focus or theme.taglist_fg_focus or theme.fg_focus
-    local bg_focus = args.bg_focus or theme.taglist_bg_focus or theme.bg_focus
-    local fg_urgent = args.fg_urgent or theme.taglist_fg_urgent or theme.fg_urgent
-    local bg_urgent = args.bg_urgent or theme.taglist_bg_urgent or theme.bg_urgent
-    local bg_occupied = args.bg_occupied or theme.taglist_bg_occupied
-    local fg_occupied = args.fg_occupied or theme.taglist_fg_occupied
-    local bg_empty = args.bg_empty or theme.taglist_bg_empty
-    local fg_empty = args.fg_empty or theme.taglist_fg_empty
-    local bg_volatile = args.bg_volatile or theme.taglist_bg_volatile
-    local fg_volatile = args.fg_volatile or theme.taglist_fg_volatile
-    local taglist_squares_sel = args.squares_sel or theme.taglist_squares_sel
-    local taglist_squares_unsel = args.squares_unsel or theme.taglist_squares_unsel
-    local taglist_squares_sel_empty = args.squares_sel_empty or theme.taglist_squares_sel_empty
-    local taglist_squares_unsel_empty = args.squares_unsel_empty or theme.taglist_squares_unsel_empty
-    local taglist_squares_resize = theme.taglist_squares_resize or args.squares_resize or "true"
-    local taglist_disable_icon = args.taglist_disable_icon or theme.taglist_disable_icon or false
-    local font = args.font or theme.taglist_font or theme.font or ""
+    local fg_focus = style.fg_focus or theme.taglist_fg_focus or theme.fg_focus
+    local bg_focus = style.bg_focus or theme.taglist_bg_focus or theme.bg_focus
+    local fg_urgent = style.fg_urgent or theme.taglist_fg_urgent or theme.fg_urgent
+    local bg_urgent = style.bg_urgent or theme.taglist_bg_urgent or theme.bg_urgent
+    local bg_occupied = style.bg_occupied or theme.taglist_bg_occupied
+    local fg_occupied = style.fg_occupied or theme.taglist_fg_occupied
+    local bg_empty = style.bg_empty or theme.taglist_bg_empty
+    local fg_empty = style.fg_empty or theme.taglist_fg_empty
+    local bg_volatile = style.bg_volatile or theme.taglist_bg_volatile
+    local fg_volatile = style.fg_volatile or theme.taglist_fg_volatile
+    local taglist_squares_sel = style.squares_sel or theme.taglist_squares_sel
+    local taglist_squares_unsel = style.squares_unsel or theme.taglist_squares_unsel
+    local taglist_squares_sel_empty = style.squares_sel_empty or theme.taglist_squares_sel_empty
+    local taglist_squares_unsel_empty = style.squares_unsel_empty or theme.taglist_squares_unsel_empty
+    local taglist_squares_resize = theme.taglist_squares_resize or style.squares_resize or "true"
+    local taglist_disable_icon = style.taglist_disable_icon or theme.taglist_disable_icon or false
+    local font = style.font or theme.taglist_font or theme.font or ""
     local text = nil
     local sel = capi.client.focus
     local bg_color = nil
     local fg_color = nil
     local bg_image
     local icon
-    local shape              = args.shape or theme.taglist_shape
-    local shape_border_width = args.shape_border_width or theme.taglist_shape_border_width
-    local shape_border_color = args.shape_border_color or theme.taglist_shape_border_color
-    local icon_size = args.icon_size or theme.taglist_icon_size
+    local shape              = style.shape or theme.taglist_shape
+    local shape_border_width = style.shape_border_width or theme.taglist_shape_border_width
+    local shape_border_color = style.shape_border_color or theme.taglist_shape_border_color
+    local icon_size = style.icon_size or theme.taglist_icon_size
     -- TODO: Re-implement bg_resize
     local bg_resize = false -- luacheck: ignore
     local is_selected = false
@@ -279,7 +280,8 @@ function taglist.taglist_label(t, args)
             end
         end
     end
-    if #cls == 0 and t.selected and taglist_squares_sel_empty then
+
+    if #cls == 0 and (t.selected and t.screen == args.screen) and taglist_squares_sel_empty then
         bg_image = taglist_squares_sel_empty
         bg_resize = taglist_squares_resize == "true"
     elseif not is_selected then
@@ -298,65 +300,65 @@ function taglist.taglist_label(t, args)
             if bg_empty then bg_color = bg_empty end
             if fg_empty then fg_color = fg_empty end
 
-            if args.shape_empty or theme.taglist_shape_empty then
-                shape = args.shape_empty or theme.taglist_shape_empty
+            if style.shape_empty or theme.taglist_shape_empty then
+                shape = style.shape_empty or theme.taglist_shape_empty
             end
 
-            if args.shape_border_width_empty or theme.taglist_shape_border_width_empty then
-                shape_border_width = args.shape_border_width_empty or theme.taglist_shape_border_width_empty
+            if style.shape_border_width_empty or theme.taglist_shape_border_width_empty then
+                shape_border_width = style.shape_border_width_empty or theme.taglist_shape_border_width_empty
             end
 
-            if args.shape_border_color_empty or theme.taglist_shape_border_color_empty then
-                shape_border_color = args.shape_border_color_empty or theme.taglist_shape_border_color_empty
+            if style.shape_border_color_empty or theme.taglist_shape_border_color_empty then
+                shape_border_color = style.shape_border_color_empty or theme.taglist_shape_border_color_empty
             end
         end
     end
-    if t.selected then
+    if t.selected and t.screen == args.screen then
         bg_color = bg_focus
         fg_color = fg_focus
 
-        if args.shape_focus or theme.taglist_shape_focus then
-            shape = args.shape_focus or theme.taglist_shape_focus
+        if style.shape_focus or theme.taglist_shape_focus then
+            shape = style.shape_focus or theme.taglist_shape_focus
         end
 
-        if args.shape_border_width_focus or theme.taglist_shape_border_width_focus then
-            shape_border_width = args.shape_border_width_focus or theme.taglist_shape_border_width_focus
+        if style.shape_border_width_focus or theme.taglist_shape_border_width_focus then
+            shape_border_width = style.shape_border_width_focus or theme.taglist_shape_border_width_focus
         end
 
-        if args.shape_border_color_focus or theme.taglist_shape_border_color_focus then
-            shape_border_color = args.shape_border_color_focus or theme.taglist_shape_border_color_focus
+        if style.shape_border_color_focus or theme.taglist_shape_border_color_focus then
+            shape_border_color = style.shape_border_color_focus or theme.taglist_shape_border_color_focus
         end
 
     elseif tag.getproperty(t, "urgent") then
         if bg_urgent then bg_color = bg_urgent end
         if fg_urgent then fg_color = fg_urgent end
 
-        if args.shape_urgent or theme.taglist_shape_urgent then
-            shape = args.shape_urgent or theme.taglist_shape_urgent
+        if style.shape_urgent or theme.taglist_shape_urgent then
+            shape = style.shape_urgent or theme.taglist_shape_urgent
         end
 
-        if args.shape_border_width_urgent or theme.taglist_shape_border_width_urgent then
-            shape_border_width = args.shape_border_width_urgent or theme.taglist_shape_border_width_urgent
+        if style.shape_border_width_urgent or theme.taglist_shape_border_width_urgent then
+            shape_border_width = style.shape_border_width_urgent or theme.taglist_shape_border_width_urgent
         end
 
-        if args.shape_border_color_urgent or theme.taglist_shape_border_color_urgent then
-            shape_border_color = args.shape_border_color_urgent or theme.taglist_shape_border_color_urgent
+        if style.shape_border_color_urgent or theme.taglist_shape_border_color_urgent then
+            shape_border_color = style.shape_border_color_urgent or theme.taglist_shape_border_color_urgent
         end
 
     elseif t.volatile then
         if bg_volatile then bg_color = bg_volatile end
         if fg_volatile then fg_color = fg_volatile end
 
-        if args.shape_volatile or theme.taglist_shape_volatile then
-            shape = args.shape_volatile or theme.taglist_shape_volatile
+        if style.shape_volatile or theme.taglist_shape_volatile then
+            shape = style.shape_volatile or theme.taglist_shape_volatile
         end
 
-        if args.shape_border_width_volatile or theme.taglist_shape_border_width_volatile then
-            shape_border_width = args.shape_border_width_volatile or theme.taglist_shape_border_width_volatile
+        if style.shape_border_width_volatile or theme.taglist_shape_border_width_volatile then
+            shape_border_width = style.shape_border_width_volatile or theme.taglist_shape_border_width_volatile
         end
 
-        if args.shape_border_color_volatile or theme.taglist_shape_border_color_volatile then
-            shape_border_color = args.shape_border_color_volatile or theme.taglist_shape_border_color_volatile
+        if style.shape_border_color_volatile or theme.taglist_shape_border_color_volatile then
+            shape_border_color = style.shape_border_color_volatile or theme.taglist_shape_border_color_volatile
         end
     end
 
@@ -403,7 +405,7 @@ local function taglist_update(s, w, buttons, filter, data, style, update_functio
         end
     end
 
-    local function label(c) return taglist.taglist_label(c, style) end
+    local function label(c) return taglist.taglist_label(c, style, args) end
 
     update_function(w, buttons, label, data, tags, {
         widget_template = args.widget_template,
