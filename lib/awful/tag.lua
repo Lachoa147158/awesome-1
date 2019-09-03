@@ -1375,6 +1375,58 @@ function tag.viewidx(i, screen)
     screen:emit_signal("tag::history::update")
 end
 
+--- Move the tag to the `s` screen and select it.
+--
+-- This is useful for [xmonad](https://xmonad.org/) style workspaces. Note
+-- that AwesomeWM allows for clients to be tagged with multiple tags.
+-- Attempting to view a tag on a screen while some of its clients are also
+-- attached to another screen will fail. If you wish to relocate a client
+-- tagged with more than one tag, it must be untagged manually before calling
+-- this method.
+--
+-- @method view_on_screen
+-- @tparam screen s The new screen.
+-- @tparam table args
+-- @tparam[opt=false] boolean args.force If some clients are multi-tagged,
+--  untag them.
+-- @tparam[opt=true] boolean args.restore_history This option will restore tags
+--  on the origin screen if the tag if it had to be relocated to `s`
+--  while being the only selected tag.
+-- @treturn boolean If it has been moved.
+function tag.object.view_on_screen(self, s, args)
+    args = args or {}
+
+    if get_screen(s) == self.screen then
+        self:view_only()
+        return true
+    end
+
+    local reloc = self.is_relocatable
+
+    -- The tag cannot be moved without causing side effects.
+    if (not args.force) and (not reloc) then return false end
+
+    -- Untag the multi-tagged clients.
+    if not reloc then
+        for _, c in ipairs(self:clients()) do
+            c:tags{self}
+        end
+    end
+
+    local old_s   = self.screen
+    local was_sel = self.selected and #self.screen.selected_tags == 1
+
+    if args.restore_history and was_sel and data.history[old_s][1] then
+        tag.history.restore(old_s, "previous")
+    end
+
+    -- Move to the new screen.
+    self.screen = s
+    self:view_only()
+
+    return true
+end
+
 --- Get a tag's index in the gettags() table.
 -- @deprecated awful.tag.getidx
 -- @see index
