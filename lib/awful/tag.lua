@@ -731,6 +731,29 @@ function tag.getmwfact(t)
     return tag.object.get_master_width_factor(t or ascreen.focused().selected_tag)
 end
 
+--- If the tag can be relocated to another screen.
+--
+-- When a tag contains clients which are tagged on more than 1 tag, this
+-- property will be false. The reason is that client can only be on one screen.
+-- Trying to relocate the tag would create an ambiguity as to where the client
+-- really is when both tags are selected at the same time.
+--
+-- @property is_relocatable
+-- @param boolean
+
+function tag.object.is_relocatable(self)
+
+    for _, c in ipairs(self:clients()) do
+        if #c:tags() > 1 then
+            return false
+        end
+    end
+
+    return true
+end
+
+function tag.object.set_relocatable() end
+
 --- An ordered list of layouts.
 -- `awful.tag.layout` Is usually defined in `rc.lua`. It store the list of
 -- layouts used when selecting the previous and next layouts. This is the
