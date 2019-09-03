@@ -713,6 +713,34 @@ function screen.set_auto_dpi_enabled(enabled)
     data.autodpi = enabled
 end
 
+--- How to behave when rotating the tags past the first or last.
+--
+-- Posibilities are:
+--
+-- **rotate** **default)*
+--
+-- Go back around the tags.
+--
+-- **screen**
+--
+-- Switch to the next screen tags.
+--
+-- **create_nonempty**
+--
+-- Create a new tag if the current tag has some clients. Otherwise stay where
+-- you are.
+--
+-- **create**
+--
+-- Create a new tag, even if there is no clients in the current one.
+--
+-- **stop**
+--
+-- When reaching an edge, stay there.
+--
+-- @property tag_iteration_behavior
+-- @tparam string
+
 --- The tag group this screen is associated with.
 --
 -- By default, each screen has its own tags and this is as far as it gets.
