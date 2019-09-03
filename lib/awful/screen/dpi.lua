@@ -184,7 +184,13 @@ end
 function module.create_screen_handler(viewport)
     local geo = viewport.geometry
 
-    local s = capi.screen.fake_add(
+    -- Let the rules create the screen.
+
+    capi.screen.emit_signal("request::_rules_create", viewport, args)
+
+
+    -- Get the screen created by the rules or create one.
+    local s = viewport.screen or capi.screen.fake_add(
         geo.x,
         geo.y,
         geo.width,
@@ -305,6 +311,12 @@ end
 screen.connect_signal("request::create", module.create_screen_handler)
 screen.connect_signal("request::remove", module.remove_screen_handler)
 screen.connect_signal("request::resize", module.resize_screen_handler)
+
+-- Make sure the screen rules are added before they are interpreted.
+-- This signal is only sent in manual screen mode.
+capi.screen.connect_signal("scanning", function()
+    capi.screen.emit_signal("request::rules")
+end)
 
 -- Create some screens when none exist. This can happen when AwesomeWM is
 -- started with `--screen manual` and no handler is used.
