@@ -117,8 +117,8 @@ local taglist_buttons = {
                                     client.focus:toggle_tag(t)
                                 end
                             end),
-    awful.button({ }, 4, function(t) awful.tag.viewnext(t.screen) end),
-    awful.button({ }, 5, function(t) awful.tag.viewprev(t.screen) end),
+    awful.button({ }, 4, function(t) awful.tag.view_next    {screen=t.screen} end),
+    awful.button({ }, 5, function(t) awful.tag.view_previous{screen=t.screen} end),
 }
 
 -- @TASKLIST_BUTTON@
@@ -221,8 +221,8 @@ end)
 -- @DOC_ROOT_BUTTONS@
 root.add_buttons({
     awful.button({ }, 3, function () mymainmenu:toggle() end),
-    awful.button({ }, 4, awful.tag.viewnext),
-    awful.button({ }, 5, awful.tag.viewprev),
+    awful.button({ }, 4, awful.tag.view_next),
+    awful.button({ }, 5, awful.tag.view_previous),
 })
 -- }}}
 
@@ -259,9 +259,9 @@ root.add_keys({
 
 -- Tags related keybindings
 root.add_keys({
-    awful.key({ modkey,           }, "Left",   awful.tag.viewprev,
+    awful.key({ modkey,           }, "Left",   awful.tag.view_previous,
               {description = "view previous", group = "tag"}),
-    awful.key({ modkey,           }, "Right",  awful.tag.viewnext,
+    awful.key({ modkey,           }, "Right",  awful.tag.view_next,
               {description = "view next", group = "tag"}),
     awful.key({ modkey,           }, "Escape", awful.tag.history.restore,
               {description = "go back", group = "tag"}),
