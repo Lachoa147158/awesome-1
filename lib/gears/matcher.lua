@@ -481,7 +481,7 @@ function matcher:_execute(o, props, callbacks)
         end
 
         if self._private.prop_setters[property] then
-            self._private.prop_setters[property](o, value)
+            self._private.prop_setters[property](o, value, props, callbacks)
         elseif type(o[property]) == "function" then
             o[property](o, value)
         else
