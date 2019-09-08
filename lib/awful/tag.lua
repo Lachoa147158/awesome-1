@@ -1577,6 +1577,47 @@ function tag.viewnone(screen)
     end
 end
 
+-- Smarter way to get the tags and group.
+local function get_tag_and_group(screen, args)
+    local group = screen.group or args.group
+    local tags  = group and tag._get_by_group(group) or screen.tags
+
+    return tags, group
+end
+
+-- Smarter way to get the selected tag which takes the group into account.
+local function get_selected_tag(tags, group, screen, args)
+    -- The last "or tags[1]" will happen in grouped mode when all tags are
+    -- on another screen.
+    local sel, idx = screen.selected_tag, nil
+
+    -- This will happen if no tags are selected on the screen, but other screens
+    -- which are part of the same group have.
+    if (not sel) and group then
+        for k, t in ipairs(tags) do
+            if t.selected then
+                sel, idx = k, t
+                break
+            end
+        end
+    end
+
+    -- Fallback to something sane.
+    if not sel then
+        sel = sel or screen.tags[1] or tags[1]
+        idx = 1
+    end
+
+    return sel, idx or gtable.hasitem(tags, sel)
+end
+
+-- When reaching the last tag, select the first and vice versa.
+local function view_relative_rotate(tags, i, current_index, _, args)
+    return ((not args.mode) or args.mode == "screen" or args.mode == "rotate") and
+        tags[gmath.cycle(#tags,current_index + i)] or
+        tags[current_index + i]
+end
+
 --- Switch to a tag in relation to the currently selected tag.
 --
 -- @staticfct awful.tag.view_relative
@@ -1598,33 +1639,24 @@ function tag.view_relative(i, args)
 
     args = args or {}
 
-    local screen = get_screen(args.screen or ascreen.focused())
-    local group  = screen.group
-    local tags   = group and args.grouper ~= false
-        and tag._get_by_group(group) or screen.tags
-
-    -- The last "or tags[1]" will happen in grouped mode when all tags are
-    -- on another screen.
-    local sel = screen.selected_tag or screen.tags[1] or tags[1]
+    local screen       = get_screen(args.screen or ascreen.focused())
+    local group        = screen.group
+    local tags, group  = get_tag_and_group(screen, args)
+    local sel, sel_idx = get_selected_tag(tags, group, screen, args)
 
     tag.viewnone(screen)
 
-    for k, t in ipairs(tags) do
-        if t == sel then
-            local g = tag.getproperty(t, "group")
+    local nt = nil
 
-            local nt = args.rotate ~= false
-                and tags[gmath.cycle(#tags, k + i)] or tags[k + i]
+    if args.mode == "rotate" or args.mode == "stop" then
+        nt = view_relative_rotate(tags, i, sel_idx, screen, args)
+    end
 
-            if nt then
-                if g and args.grouped ~= false then
-                    nt:view_on_screen(screen, {force=args.force})
-                else
-                    nt.selected = true
-                end
-            end
-
-            break
+    if nt then
+        if group or tag.getproperty(sel, "group") then
+            nt:view_on_screen(screen, {force=args.force})
+        else
+            nt.selected = true
         end
     end
 
