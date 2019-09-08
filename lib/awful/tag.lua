@@ -1620,13 +1620,28 @@ end
 
 --- Switch to a tag in relation to the currently selected tag.
 --
+-- The `args.modes` are:
+--
+-- **rotate**: *(default)*
+--
+-- Go back around the tags. For example, iterating past the end will by one
+-- will move to the first tag. Iterating backward from the first tag will
+-- select the last tag.
+--
+-- **stop**:
+--
+-- When reaching an edge, stay there. If the first tag is selected, calling
+-- `awful.tag.view_relative` with a negative number will do nothing. If the
+-- last tag is selected and `awful.tag.view_relative` is called with a positive
+-- number, it will do nothing.
+--
 -- @staticfct awful.tag.view_relative
 -- @see screen.tags
 -- @tparam number i The **relative** index to see.
 -- @tparam[opt] table args
 -- @tparam[opt=awful.screen.focused] screen args.screen The screen.
--- @tparam[opt=true] boolean args.rotate When reaching the limit of the array,
---  start from the other edge.
+-- @tparam[opt=true] boolean args.mode Which algorithm should be used to iterate.
+--  See the modes mentioned above.
 -- @tparam[opt=false] boolean args.grouped Use the grouped tag indices instead
 --  of the per screen ones.
 -- @tparam[opt=false] boolean args.force When `grouped` is set, this will untag
@@ -1781,11 +1796,23 @@ end
 
 --- View next tag, relative to the currently selected one.
 --
+-- The `args.modes` are:
+--
+-- **rotate**: *(default)*
+--
+-- Go back around the tags. For example, calling `awful.tag.view_next` past the
+-- end will by one will move to the first tag.
+--
+-- **stop**:
+--
+-- When reaching an edge, stay there. If the
+-- last tag is selected and `awful.tag.view_next` is called, it will do nothing.
+--
 -- @staticfct awful.tag.view_next
 -- @tparam table args
 -- @tparam[opt=awful.screen.focused] screen args.screen The screen.
--- @tparam[opt=true] boolean args.rotate When reaching the limit of the array,
---  start from the other edge.
+-- @tparam[opt=true] boolean args.mode Which algorithm should be used to iterate.
+--  See the modes mentioned above.
 -- @tparam[opt=false] boolean args.grouped Use the grouped tag indices instead of
 --  the per screen ones.
 -- @tparam[opt=false] boolean args.force When `grouped` is set, this will untag
@@ -1809,11 +1836,24 @@ function tag.viewprev(screen)
 end
 
 --- View previous tag, relative to the currently selected one.
+--
+-- The `args.modes` are:
+--
+-- **rotate**: *(default)*
+--
+-- Go back around the tags. For example, calling `awful.tag.view_previous` from
+-- the first tag will select the last tag.
+--
+-- **stop**:
+--
+-- When reaching an edge, stay there. If the first tag is selected, calling
+-- `awful.tag.view_previous` will do nothing.
+--
 -- @staticfct awful.tag.viewprev
 -- @tparam table args
 -- @tparam[opt=awful.screen.focused] screen args.screen The screen.
--- @tparam[opt=true] boolean args.rotate When reaching the limit of the array,
---  start from the other edge.
+-- @tparam[opt=true] boolean args.mode Which algorithm should be used to iterate.
+--  See the modes mentioned above.
 -- @tparam[opt=false] boolean args.grouped Use the grouped tag indices instead of
 --  the per screen ones.
 -- @tparam[opt=false] boolean args.force When `grouped` is set, this will untag
