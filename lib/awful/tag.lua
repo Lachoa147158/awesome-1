@@ -401,7 +401,7 @@ end
 -- @return The created tag
 -- @see tag.delete
 function tag.add(name, props)
-    local properties = props or {}
+    local properties = gtable.clone(props, false) or {}
 
     -- Be sure to set the screen before the tag is activated to avoid function
     -- connected to property::activated to be called without a valid tag.
