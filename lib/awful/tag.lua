@@ -1594,6 +1594,8 @@ end
 --  this option will restore tags on the origin screen if the tag if it had to
 --  be relocated to `args.screen` while being the only selected tag.
 function tag.view_relative(i, args)
+    if i == 0 then return end
+
     args = args or {}
 
     local screen = get_screen(args.screen or ascreen.focused())
