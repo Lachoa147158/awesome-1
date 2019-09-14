@@ -386,6 +386,10 @@ function tag.object.fork(self, args)
     return nt
 end
 
+local delayed_add = {
+    group_index = true
+}
+
 --- Add a tag.
 --
 -- This function allow to create tags from a set of properties:
@@ -437,8 +441,18 @@ function tag.add(name, props)
         -- entry.
         if k == "clients" or tag.object[k] then
             newtag[k](newtag, v)
-        else
+        elseif not delayed_add[k] then
             newtag[k] = v
+        end
+    end
+
+    for p in pairs(delayed_add) do
+        if properties[p] ~= nil then
+            if tag.object[p] then
+                newtag[p](newtag, properties[p])
+            else
+                newtag[p] = properties[p]
+            end
         end
     end
 
