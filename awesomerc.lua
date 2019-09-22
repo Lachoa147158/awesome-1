@@ -105,7 +105,9 @@ mytextclock = wibox.widget.textclock()
 -- Create a wibox for each screen and add it
 -- @TAGLIST_BUTTON@
 local taglist_buttons = {
-    awful.button({ }, 1, function(t) t:view_only() end),
+    awful.button({ }, 1, function(t)
+        t:select { only = true, relocate = true }
+    end),
     awful.button({ modkey }, 1, function(t)
                                 if client.focus then
                                     client.focus:move_to_tag(t)
@@ -117,8 +119,12 @@ local taglist_buttons = {
                                     client.focus:toggle_tag(t)
                                 end
                             end),
-    awful.button({ }, 4, function(t) awful.tag.view_next    {screen=t.screen} end),
-    awful.button({ }, 5, function(t) awful.tag.view_previous{screen=t.screen} end),
+    awful.button({ }, 4, function(t)
+        t.screen.workset:select_next_tag     { screen = t.screen }
+    end),
+    awful.button({ }, 5, function(t)
+        t.screen.workset:select_previous_tag { screen = t.screen }
+    end),
 }
 
 -- @TASKLIST_BUTTON@
@@ -221,8 +227,8 @@ end)
 -- @DOC_ROOT_BUTTONS@
 root.add_buttons({
     awful.button({ }, 3, function () mymainmenu:toggle() end),
-    awful.button({ }, 4, awful.tag.view_next),
-    awful.button({ }, 5, awful.tag.view_previous),
+    awful.button({ }, 4, awful.workset.select_next_tag),
+    awful.button({ }, 5, awful.workset.select_previous_tag),
 })
 -- }}}
 
@@ -259,9 +265,9 @@ root.add_keys({
 
 -- Tags related keybindings
 root.add_keys({
-    awful.key({ modkey,           }, "Left",   awful.tag.view_previous,
+    awful.key({ modkey,           }, "Left",   awful.workset.select_previous_tag,
               {description = "view previous", group = "tag"}),
-    awful.key({ modkey,           }, "Right",  awful.tag.view_next,
+    awful.key({ modkey,           }, "Right",  awful.workset.select_next_tag,
               {description = "view next", group = "tag"}),
     awful.key({ modkey,           }, "Escape", awful.tag.history.restore,
               {description = "go back", group = "tag"}),
@@ -382,29 +388,17 @@ clientkeys = {
 -- Be careful: we use keycodes to make it work on any keyboard layout.
 -- This should map on the top row of your keyboard, usually 1 to 9.
 for i = 1, 9 do
-    -- View tag only.
+    -- Select tag only.
     root.add_key(awful.key({ modkey }, "#" .. i + 9,
-        function ()
-            local screen = awful.screen.focused()
-            local tag = screen.tags[i]
-            if tag then
-                tag:view_only()
-            end
-        end,
-        {description = "view tag #"..i, group = "tag"})
-    )
+        function () awful.workset.select_tag_by_index(i) end,
+        {description = "select tag #"..i, group = "tag"}
+    ))
 
     -- Toggle tag display.
     root.add_key(awful.key({ modkey, "Control" }, "#" .. i + 9,
-        function ()
-            local screen = awful.screen.focused()
-            local tag = screen.tags[i]
-            if tag then
-                awful.tag.viewtoggle(tag)
-            end
-        end,
-        {description = "toggle tag #" .. i, group = "tag"})
-    )
+        function () awful.workset.toggle_tag_by_index(i) end,
+        {description = "toggle tag #" .. i, group = "tag"}
+    ))
 
     -- Move client to tag.
     root.add_key(awful.key({ modkey, "Shift" }, "#" .. i + 9,
@@ -416,8 +410,8 @@ for i = 1, 9 do
                 end
             end
         end,
-        {description = "move focused client to tag #"..i, group = "tag"})
-    )
+        {description = "move focused client to tag #"..i, group = "tag"}
+    ))
 
     -- Toggle tag on focused client.
     root.add_key(awful.key({ modkey, "Control", "Shift" }, "#" .. i + 9,
@@ -429,8 +423,8 @@ for i = 1, 9 do
                 end
             end
         end,
-        {description = "toggle focused client on tag #" .. i, group = "tag"})
-    )
+        {description = "toggle focused client on tag #" .. i, group = "tag"}
+    ))
 end
 
 -- @DOC_CLIENT_BUTTONS@
