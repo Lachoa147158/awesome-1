@@ -16,6 +16,7 @@ local beautiful = require("beautiful")
 -- Notification library
 local naughty = require("naughty")
 local menubar = require("menubar")
+local ruled   = require("ruled")
 local hotkeys_popup = require("awful.hotkeys_popup")
 -- Enable hotkeys help widget for VIM and other apps
 -- when client with a matching name is opened:
@@ -108,7 +109,11 @@ mytextclock = wibox.widget.textclock()
 -- @TAGLIST_BUTTON@
 local taglist_buttons = {
     awful.button({ }, 1, function(t)
-        t:select { only = true, relocate = true }
+        t:select {
+            only     = true,
+            relocate = true,
+            screen   = mouse.screen
+        }
     end),
     awful.button({ modkey }, 1, function(t)
                                 if client.focus then
@@ -126,7 +131,7 @@ local taglist_buttons = {
     end),
     awful.button({ }, 5, function(t)
         t.screen.workset:select_previous_tag { screen = t.screen }
-    end),
+    end)
 }
 
 -- @TASKLIST_BUTTON@
@@ -166,10 +171,14 @@ screen.connect_signal("request::wallpaper", function(s)
     end
 end)
 
--- @DOC_FOR_EACH_SCREEN@
-screen.connect_signal("request::desktop_decoration", function(s)
+-- @DOC_WORKSET_TAGS@
+awful.workset.connect_signal("request::tags", function(ws)
     -- Each screen has its own tag table.
     awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
+end)
+
+-- @DOC_FOR_EACH_SCREEN@
+screen.connect_signal("request::desktop_decoration", function(s)
 
     -- Create a promptbox for each screen
     s.mypromptbox = awful.widget.prompt()
@@ -445,6 +454,16 @@ clientbuttons = {
 }
 
 -- }}}
+
+ruled.screen.connect_signal("request::rules", function()
+    ruled.screen.append_rule {
+        rule = { }, --everything
+        properties  = {
+            split   = { ratios = {50,50} },
+            workset = "myworkset",
+        }
+    }
+end)
 
 -- {{{ Rules
 -- Rules to apply to new clients (through the "manage" signal).

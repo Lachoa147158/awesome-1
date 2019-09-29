@@ -323,6 +323,14 @@ function module._apply(viewport, args)
 
     viewport.screen = s
 
+
+    -- Instead of having priorities like in the client rules, keep it simple
+    -- until the complexity piles-up enough to warrant groups.
+    if props.workset then
+        s.workset = props.workset
+        assert(s.data.ws)
+    end
+
     srules:_execute(s, props, callbacks, args)
 end
 
@@ -462,12 +470,19 @@ srules:add_property_setter("split", function(s, value, props, callbacks)
     --FIXME
     local ns = s:split(args.ratios, orientation) --TODO get the viewport, somehow
 
+    -- Add it first to avoid a temporary workset to be created
+    if value.workset or props.workset then
+        for _, scr in ipairs(ns) do
+            scr.workset = value.workset or props.workset
+        end
+    end
+
     --FIXME makes this cleaner and without races...
     local new_props = {}
 
     -- Make sure the split doesn't get recursive.
     for prop, value in pairs(props) do
-        if prop ~= "split" then
+        if prop ~= "split" and prop ~= "workset" then
             new_props[prop] = value
         end
     end
@@ -601,6 +616,10 @@ capi.screen.connect_signal("request::_rules_create", function(viewport, args)
     end
 
     module._apply(viewport, args)
+end)
+
+capi.screen.connect_signal("scanning", function()
+    module.emit_signal("request::rules")
 end)
 
 --@DOC_rule_COMMON@

@@ -34,6 +34,7 @@ return
     rules = require("awful.rules");
     popup = require("awful.popup");
     spawn = require("awful.spawn");
+    workset = require("awful.workset");
 }
 
 -- vim: filetype=lua:expandtab:shiftwidth=4:tabstop=8:softtabstop=4:textwidth=80

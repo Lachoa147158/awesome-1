@@ -50,7 +50,7 @@ end
 -- least be blacklisted internally.
 local current_notifications = setmetatable({}, {__mode = "k"})
 
-screen.connect_for_each_screen(function(s)
+local function add_screen(s)
     current_notifications[s] = {
         top_left = {},
         top_middle = {},
@@ -60,7 +60,11 @@ screen.connect_for_each_screen(function(s)
         bottom_right = {},
         middle = {},
     }
-end)
+
+    return current_notifications[s]
+end
+
+screen.connect_for_each_screen(add_screen)
 
 --- Sum heights of notifications at position
 --
@@ -556,6 +560,11 @@ function naughty.default_notification_handler(notification, args)
     if hover_timeout then notification.box:connect_signal("mouse::enter", hover_destroy) end
 
     notification.size_info = size_info
+
+    -- If an error happen within a `connect_for_each_screen` callback, then
+    -- it may happen before `add_screen` is called depending on the `require`
+    -- order in `rc.lua`.
+    current_notifications[s] = current_notifications[s] or add_screen(s)
 
     -- position the wibox
     update_size(notification)

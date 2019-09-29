@@ -14,6 +14,7 @@ local gmath = require("gears.math")
 local object = require("gears.object")
 local timer = require("gears.timer")
 local gtable = require("gears.table")
+local aworkset = require("awful.workset")
 local alayout = nil
 local pairs = pairs
 local ipairs = ipairs
@@ -141,14 +142,11 @@ end
 -- @tfield integer awful.tag.history.limit
 -- @tparam[opt=20] integer limit
 
---- The (per screen) tag index.
+--- The index of this tag within its screen workset.
 --
 -- @DOC_sequences_tag_index_EXAMPLE@
 --
 -- The index is the position as shown in the `awful.widget.taglist`.
---
--- Note that the `index` are independant from the `group_index`. The order
--- doesn't have to be a 1:1 map.
 --
 -- **Signal:**
 --
@@ -156,72 +154,13 @@ end
 --
 -- @property index
 -- @param integer
--- @see group_index
-
-local function set_index_common(tags, self, idx, scr, prop)
-    -- sort the tags by index
-    table.sort(tags, function(a, b)
-        local ia, ib = tag.getproperty(a, prop), tag.getproperty(b, prop)
-        return (ia or math.huge) < (ib or math.huge)
-    end)
-
-    if (not idx) or (idx < 1) or (idx > #tags) then
-        return
-    end
-
-    local rm_index = nil
-
-    for i, t in ipairs(tags) do
-
-        -- Useful when this is called for the first time.
-        if not tag.getproperty(t, prop) then
-            tag.setproperty(t, prop, i)
-        end
-
-        if t == self then
-            table.remove(tags, i)
-            rm_index = i
-            break
-        end
-    end
-
-    table.insert(tags, idx, self)
-    for i = idx < rm_index and idx or rm_index, #tags do
-        local tmp_tag = tags[i]
-
-        if scr then
-            tag.object.set_screen(tmp_tag, scr)
-        end
-
-        tag.setproperty(tmp_tag, prop, i)
-    end
-end
 
 function tag.object.set_index(self, idx)
-    local scr = get_screen(tag.getproperty(self, "screen"))
-
-    -- screen.tags cannot be used as it depend on index
-    local tmp_tags = raw_tags(scr)
-
-    set_index_common(tmp_tags, self, idx, scr, "index")
+    self.screen.workset:_set_tag_index(self, idx)
 end
 
-function tag.object.get_index(query_tag)
-
-    local idx = tag.getproperty(query_tag, "index")
-
-    if idx then return idx end
-
-    -- Get an unordered list of tags
-    local tags = raw_tags(query_tag.screen)
-
-    -- Too bad, lets compute it
-    for i, t in ipairs(tags) do
-        if t == query_tag then
-            tag.setproperty(t, "index", i)
-            return i
-        end
-    end
+function tag.object.get_index(self)
+    return self.screen.workset:_get_tag_index(self)
 end
 
 --- The tag group.
@@ -238,48 +177,52 @@ end
 -- Once set, each tags will have to track their grouped indices.
 -- This is a rather "large" overhead, so better avoid this is the user prefer
 -- per screen tags.
-local tag_groups = {}
+-- local tag_groups = {}
 
-local function remove_from_group(self)
-    local g = tag.getproperty(self, "group")
-
-    -- Update the grouped indices.
-    if g and tag_groups[g] then
-        local idx = tag.getproperty(self, "group_index")
-
-        for _=idx, #tag_groups[g] do
-            tag.setproperty(
-                self, "group_index", tag.getproperty(self, "group_index") - 1
-            )
-        end
-
-        assert(tag_groups[g][idx] == self)
-        table.remove(tag_groups[g], idx)
-    end
-end
-
-function tag.object.get_group(self)
-    return tag.getproperty(self, "group")
-end
-
-function tag.object.set_group(self, group)
-    local old_g = tag.getproperty(self, "group")
-
-    -- Nothing to do.
-    if group == old_g then return end
-
-    if old_g then
-        remove_from_group(self)
-    end
-
-    if not group then return end
-
-    tag.setproperty(self, "group", group)
-
-    if tag_groups[group] then
-        tag.object.set_group_index(self, #tag._get_by_group(group)+1)
-    end
-end
+-- local function remove_from_group(self)
+--     local g = tag.getproperty(self, "group")
+--
+--     -- Update the grouped indices.
+--     if g and tag_groups[g] then
+--         local idx = tag.getproperty(self, "group_index")
+--
+--         for _=idx, #tag_groups[g] do
+--             tag.setproperty(
+--                 self, "group_index", tag.getproperty(self, "group_index") - 1
+--             )
+--         end
+--
+--         assert(tag_groups[g][idx] == self)
+--         table.remove(tag_groups[g], idx)
+--     end
+-- end
+--
+-- function tag.object.get_workset(self)
+--     local ws = tag.getproperty(self, "workset")
+--
+--     ws = ws or self.screen.workset
+--
+--     return ws
+-- end
+--
+-- function tag.object.set_group(self, group)
+--     local old_g = tag.getproperty(self, "group")
+--
+--     -- Nothing to do.
+--     if group == old_g then return end
+--
+--     if old_g then
+--         remove_from_group(self)
+--     end
+--
+--     if not group then return end
+--
+--     tag.setproperty(self, "group", group)
+--
+--     if tag_groups[group] then
+--         tag.object.set_group_index(self, #tag._get_by_group(group)+1)
+--     end
+-- end
 
 --- The grouped tag index.
 --
@@ -297,34 +240,11 @@ end
 -- @see index
 
 function tag.object.set_group_index(self, idx)
-    assert(
-        tag.getproperty(self, "group"),
-        "Setting a group index without a group makes no sense."
-    )
-
-    set_index_common(root.tags(), self, idx, nil, "group_index")
+    assert(false)
 end
 
 function tag.object.get_group_index(self)
-    local ret = tag.getproperty(self, "group_index")
-
-    local g = tag.getproperty(self, "group")
-
-    assert( g, "Setting a group index without a group makes no sense.")
-
-    -- This is the first time group_index is used.
-    if g and not tag_groups[g] then
-        tag_groups[g] = {}
-
-        for i, t in ipairs(root.tags()) do --FIXME
-            if tag.getproperty(t, "group") == g then
-                tag.setproperty(t, "group_index", i)
-                tag_groups[g][i] = t
-            end
-        end
-    end
-
-    return ret
+    assert(false)
 end
 
 --- Move a tag to an absolute position in the screen[]:tags() table.
@@ -415,20 +335,6 @@ function tag.add(name, props)
     -- Index is also required
     properties.index = properties.index or #raw_tags(properties.screen)+1
 
-    -- Delay the `group_index` property to avoid the O(!N) burst of signals.
-    local gi_to_emit = nil
-
-    local g = properties.group
-
-    if g and tag_groups[g] then
-        if properties.group_index then
-            gi_to_emit = properties.group_index
-            properties.group_index = nil
-        else
-            properties.group_index = #tag_groups[g]+1
-        end
-    end
-
     local newtag = capi.tag{ name = name }
 
     -- Start with a fresh property table to avoid collisions with unsupported data
@@ -456,19 +362,6 @@ function tag.add(name, props)
         end
     end
 
-    -- Batch update the grouped indices.
-    if gi_to_emit then
-        table.insert(tag_groups[g], gi_to_emit, newtag)
-        tag.setproperty(newtag, "group_index", gi_to_emit)
-
-        for i=gi_to_emit+1, #tag_groups[g] do
-            local t = tag_groups[g][i]
-            tag.setproperty(t, "group_index", i)
-        end
-    elseif tag_groups[g] then
-        table.insert(tag_groups[g], newtag)
-    end
-
     return newtag
 end
 
@@ -491,14 +384,14 @@ function tag.new(names, screen, layout)
     screen = get_screen(screen or 1)
     -- True if `layout` should be used as the layout of each created tag
     local have_single_layout = (not layout) or (layout.arrange and layout.name)
-    local tags, group = {}, screen.group
+    local tags = {}
     for id, name in ipairs(names) do
         local l = layout
         if not have_single_layout then
             l = layout[id] or layout[1]
         end
         table.insert(tags, id, tag.add(
-            name, {screen = screen, layout = l, group = group}
+            name, {screen = screen, layout = l}
         ))
         -- Select the first tag.
         if id == 1 then
@@ -708,36 +601,6 @@ function tag.gettags(s)
     return s and s.tags or {}
 end
 
--- Get the tags ordered by their grouped indices.
---
--- Note, do **not** modify the resulting list directly.
--- @staticfct awful.tag._get_by_group
--- @taparam string name The group name.
--- @treturn table All tags ordered by grouped indices.
-
-function tag._get_by_group(name)
-    -- Init the list.
-    if not tag_groups[name] then
-        local t = nil
-
-        for _, t2 in ipairs(root.tags()) do
-            if tag.getproperty(t2, "group") == name then
-                t = t2
-                break
-            end
-        end
-
-        if not t then
-            tag_groups[name] = {}
-            return tag_groups[name]
-        end
-
-        -- This will init the index.
-        tag.object.get_group_index(t)
-    end
-
-    return tag_groups[name]
-end
 
 --- Find a tag by name.
 -- @tparam screen s The screen of the tag
@@ -773,21 +636,23 @@ end
 -- @see screen
 
 function tag.object.set_screen(t, s)
-
     s = get_screen(s or ascreen.focused())
+
+
     local sel = t.selected
     local old_screen = get_screen(tag.getproperty(t, "screen"))
+
+    -- Update the index despite not moving. The workset will decide to act or
+    -- not. This simplify initialization.
+    s.workset:_move_tag(t, s, old_screen)
 
     if s == old_screen then return end
 
     -- Keeping the old index make very little sense when changing screen
-    tag.setproperty(t, "index", nil)
+--     tag.setproperty(t, "index", nil)
 
     -- Change the screen
     tag.setproperty(t, "screen", s)
-    if s then
-        tag.setproperty(t, "index", #s:get_tags(true))
-    end
 
     -- Make sure the client's screen matches its tags
     for _,c in ipairs(t:clients()) do
@@ -797,9 +662,9 @@ function tag.object.set_screen(t, s)
 
     if old_screen then
         -- Update all indexes
-        for i,t2 in ipairs(old_screen.tags) do
-            tag.setproperty(t2, "index", i)
-        end
+--         for i,t2 in ipairs(old_screen.tags) do
+--             tag.setproperty(t2, "index", i)
+--         end
 
         -- Restore the old screen history if the tag was selected
         if sel then
@@ -1584,113 +1449,36 @@ end
 -- @staticfct awful.tag.viewnone
 -- @tparam[opt] int|screen screen The screen.
 function tag.viewnone(screen)
-    screen = screen or ascreen.focused()
-    local tags = screen.tags
-    for _, t in pairs(tags) do
-        t.selected = false
-    end
+    aworkset._viewnone(screen)
 end
 
--- Smarter way to get the tags and group.
-local function get_tag_and_group(screen, args)
-    local group = screen.group or args.group
-    local tags  = group and tag._get_by_group(group) or screen.tags
-
-    return tags, group
-end
-
--- Smarter way to get the selected tag which takes the group into account.
-local function get_selected_tag(tags, group, screen, args)
-    -- The last "or tags[1]" will happen in grouped mode when all tags are
-    -- on another screen.
-    local sel, idx = screen.selected_tag, nil
-
-    -- This will happen if no tags are selected on the screen, but other screens
-    -- which are part of the same group have.
-    if (not sel) and group then
-        for k, t in ipairs(tags) do
-            if t.selected then
-                sel, idx = k, t
-                break
-            end
-        end
-    end
-
-    -- Fallback to something sane.
-    if not sel then
-        sel = sel or screen.tags[1] or tags[1]
-        idx = 1
-    end
-
-    return sel, idx or gtable.hasitem(tags, sel)
-end
-
--- When reaching the last tag, select the first and vice versa.
-local function view_relative_rotate(tags, i, current_index, _, args)
-    return ((not args.mode) or args.mode == "screen" or args.mode == "rotate") and
-        tags[gmath.cycle(#tags,current_index + i)] or
-        tags[current_index + i]
-end
-
---- Switch to a tag in relation to the currently selected tag.
+-- How to behave when rotating the tags past the first or last.
 --
--- The `args.modes` are:
+-- Posibilities are:
 --
--- **rotate**: *(default)*
+-- **rotate** **default)*
 --
--- Go back around the tags. For example, iterating past the end will by one
--- will move to the first tag. Iterating backward from the first tag will
--- select the last tag.
+-- Go back around the tags.
 --
--- **stop**:
+-- **screen**
 --
--- When reaching an edge, stay there. If the first tag is selected, calling
--- `awful.tag.view_relative` with a negative number will do nothing. If the
--- last tag is selected and `awful.tag.view_relative` is called with a positive
--- number, it will do nothing.
+-- Switch to the next screen tags.
 --
--- @staticfct awful.tag.view_relative
--- @see screen.tags
--- @tparam number i The **relative** index to see.
--- @tparam[opt] table args
--- @tparam[opt=awful.screen.focused] screen args.screen The screen.
--- @tparam[opt=true] boolean args.mode Which algorithm should be used to iterate.
---  See the modes mentioned above.
--- @tparam[opt=false] boolean args.grouped Use the grouped tag indices instead
---  of the per screen ones.
--- @tparam[opt=false] boolean args.force When `grouped` is set, this will untag
---  the clients tagged on more than 1 tag to allow the tag to be selected.
--- @tparam[opt=true] boolean args.restore_history When set along with `grouped`,
---  this option will restore tags on the origin screen if the tag if it had to
---  be relocated to `args.screen` while being the only selected tag.
-function tag.view_relative(i, args)
-    if i == 0 then return end
-
-    args = args or {}
-
-    local screen       = get_screen(args.screen or ascreen.focused())
-    local group        = screen.group
-    local tags, group  = get_tag_and_group(screen, args)
-    local sel, sel_idx = get_selected_tag(tags, group, screen, args)
-
-    tag.viewnone(screen)
-
-    local nt = nil
-
-    if args.mode == "rotate" or args.mode == "stop" then
-        nt = view_relative_rotate(tags, i, sel_idx, screen, args)
-    end
-
-    if nt then
-        if group or tag.getproperty(sel, "group") then
-            nt:view_on_screen(screen, {force=args.force})
-        else
-            nt.selected = true
-        end
-    end
-
-    screen:emit_signal("tag::history::update")
-end
+-- **create_nonempty**
+--
+-- Create a new tag if the current tag has some clients. Otherwise stay where
+-- you are.
+--
+-- **create**
+--
+-- Create a new tag, even if there is no clients in the current one.
+--
+-- **stop**
+--
+-- When reaching an edge, stay there.
+--
+-- @property tag_iteration_behavior
+-- @tparam string tag_iteration_behavior
 
 --- Select a tag relative to the currently selected one.
 --
@@ -1730,6 +1518,21 @@ function tag.viewidx(i, screen)
     screen:emit_signal("tag::history::update")
 end
 
+local function select_only(self)
+    local tags = self.screen.tags
+    -- First, untag everyone except the viewed tag.
+    for _, _tag in pairs(tags) do
+        if _tag ~= self then
+            _tag.selected = false
+        end
+    end
+    -- Then, set this one to selected.
+    -- We need to do that in 2 operations so we avoid flickering and several tag
+    -- selected at the same time.
+    self.selected = true
+    capi.screen[self.screen]:emit_signal("tag::history::update")
+end
+
 --- Move the tag to the `s` screen and select it.
 --
 -- This is useful for [xmonad](https://xmonad.org/) style workspaces. Note
@@ -1739,20 +1542,35 @@ end
 -- tagged with more than one tag, it must be untagged manually before calling
 -- this method.
 --
--- @method view_on_screen
--- @tparam screen s The new screen.
+-- @method select
 -- @tparam table args
+-- @tparam screen args.screen The new screen. If `force` is not set, it will
+--  be ignored when the client is multi-tagged. While it could *sometime* work,
+--  there is many corner cases where it wont.
 -- @tparam[opt=false] boolean args.force If some clients are multi-tagged,
---  untag them.
+--  untag them when changing the screen is requested.
+-- @tparam[opt=true] boolean args.only When other tags are selected on the target
+--  screen, deselect them.
+-- @tparam[opt=false] boolean args.more Select this tag in addition to already selected
+--  tags.
+-- @tparam number args.maximum When `more` is set, this defines the maximum
+--  number of selected tags to allow.
 -- @tparam[opt=true] boolean args.restore_history This option will restore tags
 --  on the origin screen if the tag if it had to be relocated to `s`
 --  while being the only selected tag.
 -- @treturn boolean If it has been moved.
-function tag.object.view_on_screen(self, s, args)
+function tag.object.select(self, args)
     args = args or {}
 
-    if get_screen(s) == self.screen then
-        self:view_only()
+    local s = args.screen and get_screen(args.screen) or nil
+
+
+    local changed_screen = s and s ~= self.screen
+
+          print("CALLED", s, self.screen)
+    if (not s) or s == self.screen and args.only ~= false then
+        select_only(self)
+          print("NO RELOC")
         return true
     end
 
@@ -1771,13 +1589,29 @@ function tag.object.view_on_screen(self, s, args)
     local old_s   = self.screen
     local was_sel = self.selected and #self.screen.selected_tags == 1
 
-    if args.restore_history and was_sel and data.history[old_s][1] then
+    local has_history = changed_screen
+        and args.restore_history ~= false
+        and was_sel
+        and data.history[old_s][1]
+
+    if has_history then
+        -- This is more a swap than a ctrl+z. Otherwise it will deplete the
+        -- history when scrolling the mouse wheel on both tasklists.
+        table.insert(data.history[s], 2, self.screen.selected_tags)
+
         tag.history.restore(old_s, "previous")
     end
 
+    print("\nRELOC", self.screen, s)
+
     -- Move to the new screen.
     self.screen = s
-    self:view_only()
+
+    if args.more then
+        tag.viewmore({self}, s or self.screen, args.maximum)
+    elseif args.only ~= false then
+        select_only(self)
+    end
 
     return true
 end
@@ -1808,32 +1642,6 @@ function tag.viewnext(screen)
     return tag.viewidx(1, screen)
 end
 
---- View next tag, relative to the currently selected one.
---
--- The `args.modes` are:
---
--- **rotate**: *(default)*
---
--- Go back around the tags. For example, calling `awful.tag.view_next` past the
--- end will by one will move to the first tag.
---
--- **stop**:
---
--- When reaching an edge, stay there. If the
--- last tag is selected and `awful.tag.view_next` is called, it will do nothing.
---
--- @staticfct awful.tag.view_next
--- @tparam table args
--- @tparam[opt=awful.screen.focused] screen args.screen The screen.
--- @tparam[opt=true] boolean args.mode Which algorithm should be used to iterate.
---  See the modes mentioned above.
--- @tparam[opt=false] boolean args.grouped Use the grouped tag indices instead of
---  the per screen ones.
--- @tparam[opt=false] boolean args.force When `grouped` is set, this will untag
---  the clients tagged on more than 1 tag to allow the tag to be selected.
-function tag.view_next(args)
-    return tag.view_relative(1, args)
-end
 
 --- View previous tag. This is the same a `tag.viewidx(-1)`.
 --
@@ -1849,33 +1657,6 @@ function tag.viewprev(screen)
     return tag.viewidx(-1, screen)
 end
 
---- View previous tag, relative to the currently selected one.
---
--- The `args.modes` are:
---
--- **rotate**: *(default)*
---
--- Go back around the tags. For example, calling `awful.tag.view_previous` from
--- the first tag will select the last tag.
---
--- **stop**:
---
--- When reaching an edge, stay there. If the first tag is selected, calling
--- `awful.tag.view_previous` will do nothing.
---
--- @staticfct awful.tag.viewprev
--- @tparam table args
--- @tparam[opt=awful.screen.focused] screen args.screen The screen.
--- @tparam[opt=true] boolean args.mode Which algorithm should be used to iterate.
---  See the modes mentioned above.
--- @tparam[opt=false] boolean args.grouped Use the grouped tag indices instead of
---  the per screen ones.
--- @tparam[opt=false] boolean args.force When `grouped` is set, this will untag
---  the clients tagged on more than 1 tag to allow the tag to be selected.
-function tag.view_previous(args)
-    return tag.view_relative(-1, args)
-end
-
 --- View only a tag.
 --
 -- @DOC_sequences_tag_view_only_EXAMPLE@
@@ -1883,18 +1664,8 @@ end
 -- @method view_only
 -- @see selected
 function tag.object.view_only(self)
-    local tags = self.screen.tags
-    -- First, untag everyone except the viewed tag.
-    for _, _tag in pairs(tags) do
-        if _tag ~= self then
-            _tag.selected = false
-        end
-    end
-    -- Then, set this one to selected.
-    -- We need to do that in 2 operations so we avoid flickering and several tag
-    -- selected at the same time.
-    self.selected = true
-    capi.screen[self.screen]:emit_signal("tag::history::update")
+    gdebug.deprecate("Use t:select{only=true} instead of t:view_only()", {deprecated_in=5})
+    select_only(self)
 end
 
 --- View only a tag.
@@ -1902,9 +1673,9 @@ end
 -- @see tag.view_only
 -- @tparam tag t The tag object.
 function tag.viewonly(t)
-    gdebug.deprecate("Use t:view_only() instead of awful.tag.viewonly", {deprecated_in=4})
+    gdebug.deprecate("Use t:select{only=true} instead of awful.tag.viewonly", {deprecated_in=4})
 
-    tag.object.view_only(t)
+    select_only(t)
 end
 
 --- View only a set of tags.

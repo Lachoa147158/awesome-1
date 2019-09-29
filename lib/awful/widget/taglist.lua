@@ -281,6 +281,7 @@ function taglist.taglist_label(t, style, args)
         end
     end
 
+    print("SEL", t.selected, t.screen, args.screen)
     if #cls == 0 and (t.selected and t.screen == args.screen) and taglist_squares_sel_empty then
         bg_image = taglist_squares_sel_empty
         bg_resize = taglist_squares_resize == "true"
@@ -396,9 +397,7 @@ end
 local function taglist_update(s, w, buttons, filter, data, style, update_function, args)
     local tags = {}
 
-    local source = args and args.source or (
-        (s and s.group) and taglist.source.for_group or taglist.source.for_screen
-    ) or nil
+    local source = args and args.source or taglist.source.for_workset
 
     local list   = source and source(s, args) or s.tags
 
@@ -430,9 +429,8 @@ end
 --   update. See `awful.widget.common`.
 -- @tparam[opt] widget args.layout Optional layout widget for tag widgets. Default
 --   is wibox.layout.fixed.horizontal().
--- @tparam[opt=awful.widget.taglist.source.for_screen] function args.source The
---  function used to generate the list of tag. If the screen is part of a group,
---  then `awful.widget.taglist.source.for_group` will be the default.
+-- @tparam[opt=awful.widget.taglist.source.for_workset] function args.source The
+--  function used to generate the list of tag.
 -- @tparam[opt] table args.widget_template A custom widget to be used for each tag
 -- @tparam[opt={}] table args.style The style overrides default theme.
 -- @tparam[opt=nil] string|pattern args.style.fg_focus
@@ -561,7 +559,7 @@ function taglist.new(args, filter, buttons, style, update_function, base_widget)
         capi.client.connect_signal("tagged", uc)
         capi.client.connect_signal("untagged", uc)
         capi.client.connect_signal("unmanage", uc)
-        capi.screen.connect_signal("property::tag_group", u)
+        capi.screen.connect_signal("property::workset", u)
         capi.screen.connect_signal("removed", function(s)
             instances[get_screen(s)] = nil
         end)
@@ -609,15 +607,14 @@ function taglist.source.for_screen(s)
     return s.tags
 end
 
---- All tags ordered by their tag group indices.
--- @sourcefunction awful.widget.taglist.source.for_group
--- @see tag.group
--- @see tag.group_index
--- @see screen.tag_group
+--- All tags ordered by their workset indices.
+-- @sourcefunction awful.widget.taglist.source.for_workset
+-- @see awful.workset
+-- @see screen.workset
 
-function taglist.source.for_group(s)
-    local g = s.tag_group
-    return g and tag._get_by_group(g) or {}
+function taglist.source.for_workset(s)
+    local ws = get_screen(s).workset
+    return ws.tags
 end
 
 function taglist.mt:__call(...)

@@ -19,6 +19,7 @@ local gdebug = require("gears.debug")
 local gmath = require("gears.math")
 local object = require("gears.object")
 local grect =  require("gears.geometry").rectangle
+local aworkset = require("awful.workset")
 
 local function get_screen(s)
     return s and capi.screen[s]
@@ -342,10 +343,7 @@ end
 -- @treturn ?screen The focused screen object, or `nil` in case no screen is
 --   present currently.
 function screen.focused(args)
-    args = args or screen.default_focused_args or {}
-    return get_screen(
-        args.client and capi.client.focus and capi.client.focus.screen or capi.mouse.screen
-    )
+    return aworkset._focused_screen(args)
 end
 
 --- Get a placement bounding geometry.
@@ -739,7 +737,7 @@ end
 -- When reaching an edge, stay there.
 --
 -- @property tag_iteration_behavior
--- @tparam string
+-- @tparam string tag_iteration_behavior
 
 --- The tag group this screen is associated with.
 --
@@ -760,8 +758,58 @@ end
 -- By default, screens are not part of any group. Screens can be part of at
 -- most group to prevent further ambiguities.
 --
--- @property tag_group
--- @tparam nil|string tag_group
+-- @property workset
+-- @tparam nil|string|awful.workset workset
+
+function screen.object.get_workset(self)
+    local ws = self.data.ws
+
+    if not ws then
+        local name, tags = self.name, screen.object.get_tags(self)
+
+        if name == "" or not name then
+            name = next(s.outputs)
+        end
+
+        self.data.ws = aworkset {
+            name     =  name,
+            tags     =  tags,
+            screens  = {self}
+        }
+    end
+
+    return self.data.ws
+end
+
+function screen.object.set_workset(self, workset)
+    if self.data.ws == workset then return end
+
+    if type(workset) == "string" then
+        local ws = aworkset._get_by_name(workset)
+
+        if ws and ws == self.data.ws then return end
+
+        if ws then
+            self.data.ws = ws
+            return
+        end
+
+        self.data.ws = aworkset {
+            name     =  workset,
+            tags     =  screen.object.get_tags(self),
+            screens  = {self}
+        }
+
+        assert(aworkset._get_by_name(workset) == self.data.ws)
+          print("\nFROM STRING", self, self.data.ws)
+
+        return
+    end
+
+    print("\n\nSET WORKSET", self, workset, self.data.ws)
+
+    self.data.ws = workset
+end
 
 --- The number of pixels per inch of the screen.
 --
@@ -1051,6 +1099,24 @@ object.properties(capi.screen, {
     getter_class = screen.object,
     setter_class = screen.object,
     auto_emit    = true,
+})
+
+-- Prevent a dependency loop by putting focused screen logic into the workset.
+screen = setmetatable(screen, {
+    __index = function(_, key)
+        if key == "default_focused_args" then
+            return aworkset._default_focused_args
+        else
+            return rawget(screen, key)
+        end
+    end,
+    __newindex = function(_, key, value)
+        if key == "default_focused_args" then
+            aworkset._default_focused_args = value
+        else
+            rawset(screen, key, value)
+        end
+    end,
 })
 
 --@DOC_object_COMMON@

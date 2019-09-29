@@ -183,7 +183,7 @@ naughty.notifications = { suspended = { }, _expired = {{}} }
 
 naughty._active = {}
 
-screen.connect_for_each_screen(function(s)
+local function add_screen(s)
     naughty.notifications[s] = {
         top_left = {},
         top_middle = {},
@@ -193,7 +193,11 @@ screen.connect_for_each_screen(function(s)
         bottom_right = {},
         middle = {},
     }
-end)
+
+    return naughty.notifications[s]
+end
+
+screen.connect_for_each_screen(add_screen)
 
 capi.screen.connect_signal("removed", function(scr)
     -- Destroy all notifications on this screen
@@ -555,6 +559,11 @@ local function register(notification, args)
     local s = get_screen(args.screen
         or (notification.preset and notification.preset.screen)
         or screen.focused())
+
+    -- If an error happen within a `connect_for_each_screen` callback, then
+    -- it may happen before `add_screen` is called depending on the `require`
+    -- order in `rc.lua`.
+    naughty.notifications[s] = naughty.notifications[s] or add_screen(s)
 
     -- insert the notification to the table
     table.insert(naughty._active, notification)

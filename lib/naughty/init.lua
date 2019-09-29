@@ -55,12 +55,12 @@ end
 
 -- Handle runtime errors during startup
 if capi.awesome.startup_errors then
-
     -- Wait until `rc.lua` is executed before creating the notifications.
     -- Otherwise nothing is handling them (yet).
     client.connect_signal("scanning", function()
         -- A lot of things have to go wrong for this to happen, but it can.
         screen_fallback()
+
 
         naughty.emit_signal(
             "request::display_error", capi.awesome.startup_errors, true
@@ -77,6 +77,8 @@ do
         if in_error then return end
 
         in_error = true
+
+                               print(err)
 
         screen_fallback()
 
