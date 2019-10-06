@@ -77,7 +77,7 @@ button.names = {
 -- @param integer
 
 --- Execute this mousebinding.
--- @function button:trigger
+-- @method :trigger
 
 function button:set_button(b)
     for _, v in ipairs(self) do
