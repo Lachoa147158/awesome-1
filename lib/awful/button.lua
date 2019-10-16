@@ -165,15 +165,22 @@ local obj_mt = {
 function button.new(mod, _button, press, release)
     local ret = {}
     local subsets = gmath.subsets(ignore_modifiers)
+
     for _, set in ipairs(subsets) do
-        ret[#ret + 1] = capi.button({ modifiers = gtable.join(mod, set),
+        local sub_button = capi.button({ modifiers = gtable.join(mod, set),
                                       button = _button })
+
+        sub_button._private.abutton = ret
+
         if press then
-            ret[#ret]:connect_signal("press", function(_, ...) press(...) end)
+            sub_button:connect_signal("press", function(_, ...) press(...) end)
         end
+
         if release then
-            ret[#ret]:connect_signal("release", function (_, ...) release(...) end)
+            sub_button:connect_signal("release", function (_, ...) release(...) end)
         end
+
+        ret[#ret + 1] = sub_button
     end
 
     reverse_map[ret] = {
