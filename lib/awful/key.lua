@@ -231,14 +231,19 @@ function key.new(mod, _key, press, release, data)
     local ret = {}
     local subsets = gmath.subsets(key.ignore_modifiers)
     for _, set in ipairs(subsets) do
-        ret[#ret + 1] = capi.key({ modifiers = gtable.join(mod, set),
+        local sub_key = capi.key({ modifiers = gtable.join(mod, set),
                                    key = _key })
+
+        sub_key._private.akey = ret
+
         if press then
-            ret[#ret]:connect_signal("press", function(_, ...) press(...) end)
+            sub_key:connect_signal("press", function(_, ...) press(...) end)
         end
         if release then
-            ret[#ret]:connect_signal("release", function(_, ...) release(...) end)
+            sub_key:connect_signal("release", function(_, ...) release(...) end)
         end
+
+        ret[#ret + 1] = sub_key
     end
 
     -- append custom userdata (like description) to a hotkey
