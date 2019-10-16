@@ -13,6 +13,7 @@ local ipairs = ipairs
 local capi = { key = key, root = root, awesome = awesome }
 local gmath = require("gears.math")
 local gtable = require("gears.table")
+local gobject = require("gears.object")
 
 --- The keyboard key used to trigger this keybinding.
 --
@@ -287,6 +288,10 @@ end
 function key.mt:__call(...)
     return key.new(...)
 end
+
+gobject.properties(capi.key, {
+    auto_emit = true,
+})
 
 return setmetatable(key, key.mt)
 
