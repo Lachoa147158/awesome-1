@@ -13,6 +13,7 @@ local ipairs = ipairs
 local capi = { button = button, root = root }
 local gmath = require("gears.math")
 local gtable = require("gears.table")
+local gobject = require("gears.object")
 
 local button = { mt = {} }
 
@@ -191,6 +192,10 @@ end
 function button.mt:__call(...)
     return button.new(...)
 end
+
+gobject.properties(capi.button, {
+    auto_emit = true,
+})
 
 return setmetatable(button, button.mt)
 
