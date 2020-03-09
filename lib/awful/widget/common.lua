@@ -121,7 +121,9 @@ end
 -- @tparam[opt={}] table args
 function common.list_update(w, buttons, label, data, objects, args)
     -- update the widgets, creating them if needed
-    w:reset()
+    if w.reset then
+        w:reset()
+    end
     for i, o in ipairs(objects) do
         local cache = data[o]
 
